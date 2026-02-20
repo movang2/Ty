@@ -633,8 +633,8 @@
             iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
             const subtitleLinkContainer = document.getElementById("subtitle-link-container");
             const subtitleLink = document.getElementById("subtitle-link");
-            subtitleLink.href = `https://subtitle.to/${urlInput}`;
-            subtitleLink.textContent = `Tải phụ đề từ subtitle.to cho video này`;
+            subtitleLink.href = `https://getsubs.cc/${urlInput}`;
+            subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này`;
             subtitleLinkContainer.style.display = "block";
             initializePlayer();
             const historyItem = history.find(item => item.videoUrl === urlInput);
@@ -1897,4 +1897,4 @@ window.toggleNaverLookup = function(enabled) {
 };
     </script>
 </body>
-</html>
+    </html>
