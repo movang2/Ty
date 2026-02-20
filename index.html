@@ -669,9 +669,22 @@
        }
 
         function extractVideoId(url) {
-            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))([^?&]+)/);
-            return match ? match[1] : null;
-       }
+    // Xử lý nhiều định dạng URL YouTube khác nhau
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=)([^&]+)/,
+        /(?:youtube\.com\/embed\/)([^?]+)/,
+        /(?:youtube\.com\/v\/)([^?]+)/,
+        /(?:youtu\.be\/)([^?]+)/,
+        /(?:youtube\.com\/live\/)([^?]+)/  // Thêm pattern cho live stream
+    ];
+    
+    for (let pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    
+    return null;
+}
 
         function initializePlayer() {
             youtubePlayer = new YT.Player("youtube-video", {
