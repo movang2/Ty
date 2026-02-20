@@ -633,7 +633,19 @@
             iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
             const subtitleLinkContainer = document.getElementById("subtitle-link-container");
             const subtitleLink = document.getElementById("subtitle-link");
-            subtitleLink.href = `https://getsubs.cc/${urlInput}`;
+            // Chuyển đổi URL live sang định dạng watch?v=
+let convertedUrl = urlInput;
+if (urlInput.includes('youtube.com/live/')) {
+    // Trích xuất video ID từ URL live
+    const liveMatch = urlInput.match(/youtube\.com\/live\/([^?&]+)/);
+    if (liveMatch && liveMatch[1]) {
+        const videoId = liveMatch[1].split('?')[0]; // Lấy phần ID, bỏ query params
+        convertedUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    }
+}
+
+subtitleLink.href = `https://getsubs.cc/${convertedUrl}`;
+subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${urlInput.includes('youtube.com/live/') ? ' (đã chuyển đổi từ live)' : ''}`;
             subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này`;
             subtitleLinkContainer.style.display = "block";
             initializePlayer();
@@ -1897,4 +1909,4 @@ window.toggleNaverLookup = function(enabled) {
 };
     </script>
 </body>
-    </html>
+</html>
