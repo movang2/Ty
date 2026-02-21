@@ -4,7 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video YouTube với Phụ đề, TTS và Từ vựng (Hoàn hảo)</title>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://www.youtube.com/iframe_api">
+
+function updateVocabDisplayFromCurrentSubtitle() {
+    if (!subtitleData.length || currentSubtitleIndex < 0) return;
+    
+    const currentSub = subtitleData[currentSubtitleIndex];
+    if (!currentSub) return;
+    
+    const koreanWords = currentSub.koreanText.match(/[\p{Script=Hangul}]+/gu) || [];
+    const container = document.getElementById("vocab-info-display");
+    let hasVocab = false;
+    let html = '';
+    
+    koreanWords.forEach(word => {
+        const existingVocab = vocabList.find(item => item.word === word);
+        const notebookVocab = getNotebookVocabInfo(word);
+        
+        if (existingVocab || notebookVocab) {
+            hasVocab = true;
+            html += `<div class="vocab-info-item">`;
+            html += `<div><span class="vocab-info-korean">${word}</span>`;
+            
+            if (notebookVocab?.meaning) {
+                html += `<span class="vocab-info-meaning" style="color:#9C27B0;font-weight:bold;">📔 ${notebookVocab.meaning}</span>`;
+            } 
+            else if (existingVocab?.meaning && existingVocab.meaning !== "Đang tra cứu...") {
+                html += `<span class="vocab-info-meaning">🌐 ${existingVocab.meaning}</span>`;
+            }
+            else if (existingVocab?.meaning === "Đang tra cứu...") {
+                html += `<span class="vocab-info-meaning" style="color:#FF9800;">⏳ Đang tra cứu...</span>`;
+            }
+            
+            html += `</div></div>`;
+        }
+    });
+    
+    if (hasVocab) {
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = "👉 Nhấp vào từ vựng được tô màu trong phụ đề để xem chi tiết";
+    }
+}
+
+
+</script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -454,7 +498,51 @@
                                 textArea.value = content;
                            }
                        }
-                    </script>
+                    
+
+function updateVocabDisplayFromCurrentSubtitle() {
+    if (!subtitleData.length || currentSubtitleIndex < 0) return;
+    
+    const currentSub = subtitleData[currentSubtitleIndex];
+    if (!currentSub) return;
+    
+    const koreanWords = currentSub.koreanText.match(/[\p{Script=Hangul}]+/gu) || [];
+    const container = document.getElementById("vocab-info-display");
+    let hasVocab = false;
+    let html = '';
+    
+    koreanWords.forEach(word => {
+        const existingVocab = vocabList.find(item => item.word === word);
+        const notebookVocab = getNotebookVocabInfo(word);
+        
+        if (existingVocab || notebookVocab) {
+            hasVocab = true;
+            html += `<div class="vocab-info-item">`;
+            html += `<div><span class="vocab-info-korean">${word}</span>`;
+            
+            if (notebookVocab?.meaning) {
+                html += `<span class="vocab-info-meaning" style="color:#9C27B0;font-weight:bold;">📔 ${notebookVocab.meaning}</span>`;
+            } 
+            else if (existingVocab?.meaning && existingVocab.meaning !== "Đang tra cứu...") {
+                html += `<span class="vocab-info-meaning">🌐 ${existingVocab.meaning}</span>`;
+            }
+            else if (existingVocab?.meaning === "Đang tra cứu...") {
+                html += `<span class="vocab-info-meaning" style="color:#FF9800;">⏳ Đang tra cứu...</span>`;
+            }
+            
+            html += `</div></div>`;
+        }
+    });
+    
+    if (hasVocab) {
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = "👉 Nhấp vào từ vựng được tô màu trong phụ đề để xem chi tiết";
+    }
+}
+
+
+</script>
                 
     <div id="linked-vocab-list"></div>
     <div style="margin-top: 10px;">
@@ -996,11 +1084,34 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             lookupWord(word);
        }
 
-        function lookupWord(word) {
-            // Luôn thêm từ vào danh sách từ vựng nếu chưa có
-            const existingVocab = vocabList.find(item => item.word === word);
-            if (!existingVocab) {
-                vocabList.push({ word, meaning: "Đang tra cứu..."});
+        
+function lookupWord(word) {
+    const existingVocab = vocabList.find(item => item.word === word);
+    if (!existingVocab) {
+        vocabList.push({ word, meaning: "Đang tra cứu..."});
+        saveVocabToHistory();
+        displayVocabList();
+    }
+
+    const notebookVocab = getNotebookVocabInfo(word);
+    
+    if (vocabDisplayMode) {
+    } else if (instantLookupEnabled) {
+        openNaverDict(word);
+        if (!existingVocab || existingVocab.meaning === "Đang tra cứu...") {
+            fetchGoogleTranslate(word).then(() => {
+                updateVocabDisplayFromCurrentSubtitle();
+            });
+        }
+    } else {
+        if (!existingVocab || existingVocab.meaning === "Đang tra cứu...") {
+            fetchGoogleTranslate(word).then(() => {
+                updateVocabDisplayFromCurrentSubtitle();
+            });
+        }
+    }
+}
+);
                 saveVocabToHistory();
                 displayVocabList();
            }
@@ -1112,6 +1223,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             youtubePlayer.seekTo(subtitleData[index].startTime, true);
             youtubePlayer.playVideo();
             highlightSubtitle(index);
+    updateVocabDisplayFromCurrentSubtitle();
        }
 
         function highlightSubtitle(index) {
@@ -1208,6 +1320,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
            }
             document.getElementById("subtitle-display").innerHTML = subtitleContent;
             highlightSubtitle(index);
+    updateVocabDisplayFromCurrentSubtitle();
        }
 
         function readText(text, callback) {
@@ -1714,199 +1827,50 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
        }
 
         window.onload = loadInitialState;
-// ===== TOOLTIP FUNCTIONALITY =====
-let activeTooltip = null;
-let tooltipTimeout = null;
 
-function showTooltip(word, meaning, source, x, y) {
-    // Xóa tooltip cũ nếu có
-    if (activeTooltip) {
-        activeTooltip.remove();
-   }
+
+function updateVocabDisplayFromCurrentSubtitle() {
+    if (!subtitleData.length || currentSubtitleIndex < 0) return;
     
-    // Xóa timeout cũ
-    if (tooltipTimeout) {
-        clearTimeout(tooltipTimeout);
-   }
+    const currentSub = subtitleData[currentSubtitleIndex];
+    if (!currentSub) return;
     
-    // Tạo tooltip mới
-    const tooltip = document.createElement('div');
-    tooltip.className = 'tooltip-box';
+    const koreanWords = currentSub.koreanText.match(/[\p{Script=Hangul}]+/gu) || [];
+    const container = document.getElementById("vocab-info-display");
+    let hasVocab = false;
+    let html = '';
     
-    // Xác định vị trí (trên hay dưới)
-    const viewportHeight = window.innerHeight;
-    const position = y > viewportHeight / 2 ? 'top' : 'bottom';
-    if (position === 'bottom') {
-        tooltip.classList.add('bottom');
-   }
+    koreanWords.forEach(word => {
+        const existingVocab = vocabList.find(item => item.word === word);
+        const notebookVocab = getNotebookVocabInfo(word);
+        
+        if (existingVocab || notebookVocab) {
+            hasVocab = true;
+            html += `<div class="vocab-info-item">`;
+            html += `<div><span class="vocab-info-korean">${word}</span>`;
+            
+            if (notebookVocab?.meaning) {
+                html += `<span class="vocab-info-meaning" style="color:#9C27B0;font-weight:bold;">📔 ${notebookVocab.meaning}</span>`;
+            } 
+            else if (existingVocab?.meaning && existingVocab.meaning !== "Đang tra cứu...") {
+                html += `<span class="vocab-info-meaning">🌐 ${existingVocab.meaning}</span>`;
+            }
+            else if (existingVocab?.meaning === "Đang tra cứu...") {
+                html += `<span class="vocab-info-meaning" style="color:#FF9800;">⏳ Đang tra cứu...</span>`;
+            }
+            
+            html += `</div></div>`;
+        }
+    });
     
-    // Xác định nguồn thông tin
-    let sourceText = '';
-    if (source === 'notebook') {
-        sourceText = '📔 Từ NotebookLM';
-   } else if (source === 'google') {
-        sourceText = '🌐 Google Dịch';
-   } else if (source === 'manual') {
-        sourceText = '📝 Từ do bạn nhập';
-   }
-    
-    tooltip.innerHTML = `
-        <span class="tooltip-word">${word}</span>
-        <span class="tooltip-meaning">${meaning}</span>
-        ${sourceText ? `<div class="tooltip-source"> ${sourceText}</div>` : ''}
-    `;
-    
-    document.body.appendChild(tooltip);
-    activeTooltip = tooltip;
-    
-    // Đặt vị trí tooltip
-    const tooltipWidth = tooltip.offsetWidth;
-    let left = x - tooltipWidth / 2;
-    left = Math.max(10, Math.min(left, window.innerWidth - tooltipWidth - 10));
-    
-    let top;
-    if (position === 'bottom') {
-        top = y + 20; // Hiện bên dưới con trỏ
-   } else {
-        top = y - tooltip.offsetHeight - 20; // Hiện bên trên con trỏ
-   }
-    
-    tooltip.style.left = left + 'px';
-    tooltip.style.top = top + 'px';
-    
-    // Tự động ẩn sau 4 giây
-    tooltipTimeout = setTimeout(() => {
-        if (activeTooltip) {
-            activeTooltip.style.animation = 'tooltipFadeIn 0.2s ease reverse';
-            setTimeout(() => {
-                if (activeTooltip) {
-                    activeTooltip.remove();
-                    activeTooltip = null;
-               }
-           }, 200);
-       }
-   }, 4000);
+    if (hasVocab) {
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = "👉 Nhấp vào từ vựng được tô màu trong phụ đề để xem chi tiết";
+    }
 }
 
-// Ghi đè hàm lookupWord để sử dụng tooltip
-const originalLookupWord = window.lookupWord;
-window.lookupWord = function(word) {
-    // Luôn thêm từ vào danh sách từ vựng nếu chưa có
-    const existingVocab = vocabList.find(item => item.word === word);
-    if (!existingVocab) {
-        vocabList.push({ word, meaning: "Đang tra cứu..."});
-        saveVocabToHistory();
-        displayVocabList();
-   }
 
-    // Tìm trong NotebookLM
-    const notebookVocab = getNotebookVocabInfo(word);
-    
-    // Kiểm tra chế độ
-    const naverLookupEnabled = document.getElementById('naver-lookup-toggle').checked;
-    
-    if (naverLookupEnabled) {
-        // Nếu bật Naver, mở tab mới
-        openNaverDict(word);
-        if (!existingVocab) {
-            fetchGoogleTranslate(word);
-       }
-   } else {
-        // Nếu tắt Naver, hiển thị tooltip
-        const event = window.event;
-        const mouseX = event ? event.clientX : window.innerWidth / 2;
-        const mouseY = event ? event.clientY : window.innerHeight / 2;
-        
-        if (notebookVocab) {
-            // Có trong NotebookLM
-            showTooltip(word, notebookVocab.meaning, 'notebook', mouseX, mouseY);
-       } else if (existingVocab && existingVocab.meaning && existingVocab.meaning !== "Đang tra cứu...") {
-            // Có trong từ điển đã lưu
-            showTooltip(word, existingVocab.meaning, 'manual', mouseX, mouseY);
-            
-            // Dịch thêm nếu chưa có nghĩa
-            if (!existingVocab.meaning || existingVocab.meaning === "Đang tra cứu...") {
-                fetchGoogleTranslate(word);
-           }
-       } else {
-            // Chưa có nghĩa, hiển thị loading và dịch
-            showTooltip(word, "Đang tra cứu...", '', mouseX, mouseY);
-            
-            // Dịch qua Google
-            fetchGoogleTranslate(word).then(() => {
-                // Cập nhật tooltip sau khi dịch xong
-                const updatedVocab = vocabList.find(item => item.word === word);
-                if (updatedVocab && updatedVocab.meaning && updatedVocab.meaning !== "Đang tra cứu...") {
-                    if (activeTooltip) {
-                        activeTooltip.remove();
-                        activeTooltip = null;
-                   }
-                    showTooltip(word, updatedVocab.meaning, 'google', mouseX, mouseY);
-               }
-           });
-       }
-   }
-    
-    // Vẫn hiển thị thông tin chi tiết ở panel dưới
-    displayVocabInfo(word, existingVocab || vocabList.find(item => item.word === word), notebookVocab);
-};
-
-// Cập nhật hàm fetchGoogleTranslate để trả về Promise
-window.fetchGoogleTranslate = async function(text) {
-    try {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=vi&dt=t&q=${encodeURIComponent(text)}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const translated = data[0].map(x => x[0]).join('');
-        
-        const index = vocabList.findIndex(item => item.word === text);
-        if (index !== -1) {
-            vocabList[index].meaning = translated;
-            saveVocabToHistory();
-            displayVocabList();
-            updateSubtitleDisplay(currentSubtitleIndex);
-       } else {
-            vocabList.push({ word: text, meaning: translated});
-            saveVocabToHistory();
-            displayVocabList();
-       }
-        
-        return translated;
-   } catch (e) {
-        console.error("Lỗi dịch Google:", e);
-        return null;
-   }
-};
-
-// Thêm event listener để đóng tooltip khi click ra ngoài
-document.addEventListener('click', function(e) {
-    if (activeTooltip && !e.target.closest('.korean-word')) {
-        activeTooltip.remove();
-        activeTooltip = null;
-        if (tooltipTimeout) {
-            clearTimeout(tooltipTimeout);
-       }
-   }
-});
-
-// Thêm event listener cho phím ESC để đóng tooltip
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && activeTooltip) {
-        activeTooltip.remove();
-        activeTooltip = null;
-        if (tooltipTimeout) {
-            clearTimeout(tooltipTimeout);
-       }
-   }
-});
-
-// Cập nhật hàm toggleNaverLookup để thông báo
-const originalToggleNaver = window.toggleNaverLookup;
-window.toggleNaverLookup = function(enabled) {
-    originalToggleNaver(enabled);
-    const mode = enabled ? '🌐 Mở Naver Dictionary' : '💬 Hiển thị tooltip thông minh';
-    alert(`Đã chuyển sang chế độ: ${mode}\n ${enabled ? 'Click vào từ sẽ mở tab Naver mới' : 'Click vào từ sẽ hiện tooltip nghĩa ngay tại chỗ'}`);
-};
-    </script>
+</script>
 </body>
 </html>
