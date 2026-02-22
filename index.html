@@ -1908,5 +1908,62 @@ window.toggleNaverLookup = function(enabled) {
     alert(`Đã chuyển sang chế độ: ${mode}\n ${enabled ? 'Click vào từ sẽ mở tab Naver mới' : 'Click vào từ sẽ hiện tooltip nghĩa ngay tại chỗ'}`);
 };
     </script>
+
+<!-- ================= PATCH VOCAB TIME SYSTEM ================= -->
+<script>
+
+let lastShownVocab = null;
+
+function jumpToVocabTime(vocabIndex, timeIndex) {
+    if (!youtubePlayer) {
+        alert("Vui lòng tải video trước!");
+        return;
+    }
+
+    const vocab = vocabList[vocabIndex];
+    if (!vocab || !vocab.times || !vocab.times[timeIndex]) return;
+
+    const time = vocab.times[timeIndex];
+    youtubePlayer.seekTo(time, true);
+    youtubePlayer.playVideo();
+
+    const notebookVocab = getNotebookVocabInfo(vocab.word);
+    displayVocabInfo(vocab.word, vocab, notebookVocab);
+}
+
+function toggleLearned(index) {
+    vocabList[index].learned = !vocabList[index].learned;
+    saveVocabToHistory();
+    displayVocabList();
+}
+
+function checkVocabAtCurrentTime() {
+    if (!youtubePlayer || !vocabList.length) return;
+
+    const currentTime = youtubePlayer.getCurrentTime();
+
+    for (let item of vocabList) {
+        if (item.times?.some(time => Math.abs(time - currentTime) < 0.5)) {
+            if (lastShownVocab !== item.word) {
+                lastShownVocab = item.word;
+                const notebookVocab = getNotebookVocabInfo(item.word);
+                displayVocabInfo(item.word, item, notebookVocab);
+            }
+            return;
+        }
+    }
+}
+
+if (typeof syncSubtitles === "function") {
+    const originalSync = syncSubtitles;
+    syncSubtitles = function() {
+        originalSync();
+        checkVocabAtCurrentTime();
+    };
+}
+
+</script>
+<!-- ================= END PATCH ================= -->
+
 </body>
-</html>
+    </html>
