@@ -1070,18 +1070,24 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
            }
             
-            const appearances = findWordAppearances(word);
-            if (appearances.length > 0) {
-                html += `<div style="margin-top:10px;font-size:0.9em;color:#555;">`;
-                html += `<div>🕒 Xuất hiện trong video:</div>`;
-                appearances.forEach((time, idx) => {
-                    html += `<div style="margin-top:4px;">
-                        <span class="vocab-info-time">${formatTime(time.startTime)}</span>
-                        <button onclick="jumpToSubtitle(${time.subtitleIndex})">Xem</button>
-                    </div>`;
-               });
-                html += `</div>`;
-           }
+            function displayVocabInfo(word, existingVocab, notebookVocab) {
+    const container = document.getElementById("vocab-info-display");
+    let html = `<div class="vocab-info-item">`;
+    
+    html += `<div><span class="vocab-info-korean">${word}</span>`;
+    
+    if (existingVocab?.meaning) {
+        html += `<span class="vocab-info-meaning">${existingVocab.meaning}</span>`;
+    }
+    html += `</div>`;
+    
+    if (notebookVocab?.meaning && (!existingVocab || notebookVocab.meaning !== existingVocab.meaning)) {
+        html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
+    }
+    
+    html += `</div>`;
+    container.innerHTML = html;
+}
             
             html += `</div>`;
             container.innerHTML = html;
