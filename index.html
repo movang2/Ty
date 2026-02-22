@@ -1169,11 +1169,20 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 currentSubtitleIndex = nextIndex;
                 updateSubtitleDisplay(currentSubtitleIndex);
                 
-                const autoVocabs = vocabList.filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex));
+                const autoVocabs = vocabList.filter(v => 
+                    v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex)
+                );
                 if (autoVocabs.length > 0) {
                     const wordData = autoVocabs[0];
                     const notebookVocab = getNotebookVocabInfo(wordData.word);
-                    displayVocabInfo(wordData.word, wordData, notebookVocab);
+
+                    // Chỉ hiển thị đúng thời điểm hiện tại (không render toàn bộ savedIndexes)
+                    const singleDisplayData = {
+                        ...wordData,
+                        savedIndexes: [currentSubtitleIndex]
+                    };
+
+                    displayVocabInfo(wordData.word, singleDisplayData, notebookVocab);
                 }
                 
                 const textToRead = ttsLanguage === "vi-VN" ? nextSubtitle.vietnameseText : nextSubtitle.koreanText;
