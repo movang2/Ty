@@ -1974,5 +1974,89 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 </script>
 
+
+    <!-- Nút Reset Dữ Liệu - Được thêm tự động -->
+    <div style="text-align: center; margin: 20px 0;">
+        <button onclick="resetToDefault()" style="padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: 500; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+            🔄 Reset Tất Cả Dữ Liệu
+        </button>
+    </div>
+
+    <script>
+    function resetToDefault() {
+        if(confirm('⚠️ Bạn có chắc muốn reset toàn bộ dữ liệu về trạng thái ban đầu? Hành động này không thể hoàn tác!')) {
+            
+            // 1. Reset tất cả input fields
+            document.querySelectorAll('input, textarea, select').forEach(element => {
+                if(element.type === 'text' || element.type === 'textarea' || element.type === 'email' || 
+                   element.type === 'password' || element.type === 'number' || element.type === 'search' ||
+                   element.type === 'tel' || element.type === 'url') {
+                    element.value = '';
+                } else if(element.type === 'checkbox' || element.type === 'radio') {
+                    element.checked = false;
+                } else if(element.tagName === 'SELECT') {
+                    element.selectedIndex = 0;
+                }
+            });
+            
+            // 2. Reset tất cả dữ liệu trong localStorage
+            localStorage.clear();
+            
+            // 3. Reset tất cả dữ liệu trong sessionStorage
+            sessionStorage.clear();
+            
+            // 4. Reset form nếu có
+            const forms = document.getElementsByTagName('form');
+            for(let form of forms) {
+                form.reset();
+            }
+            
+            // 5. Xóa tất cả cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // 6. Reset nội dung của các element có contenteditable
+            document.querySelectorAll('[contenteditable="true"]').forEach(element => {
+                element.innerHTML = '';
+            });
+            
+            // 7. Reset giá trị của range inputs
+            document.querySelectorAll('input[type="range"]').forEach(element => {
+                element.value = element.defaultValue;
+            });
+            
+            // 8. Reset tất cả radio groups
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                if(radio.defaultChecked) {
+                    radio.checked = true;
+                } else {
+                    radio.checked = false;
+                }
+            });
+            
+            // Thông báo thành công
+            alert('✅ Đã reset toàn bộ dữ liệu thành công!');
+            
+            // Tùy chọn: reload trang
+            // location.reload();
+        }
+    }
+    </script>
+
+    <style>
+    /* Style cho nút reset khi hover */
+    .reset-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Animation khi click */
+    .reset-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+    </style>
+
 </body>
-</html>
+    </html>
