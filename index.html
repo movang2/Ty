@@ -341,20 +341,6 @@
         transform: translateY(0);
    }
 }
-        /* Giữ nguyên style cũ, thêm animation cho panel tự cập nhật */
-        #vocab-info-display {
-            transition: opacity 0.3s ease;
-        }
-        #vocab-info-display.updating {
-            opacity: 0.5;
-        }
-        /* Highlight mạnh hơn cho từ đã tra khi tự hiển thị */
-        .korean-word.learned.auto-highlight {
-            animation: blink 1s ease-in-out;
-        }
-        @keyframes blink {
-            50% { background-color: #ffeb3b; }
-        }
     </style>
 </head>
 <body>
@@ -497,7 +483,7 @@
         let ttsLanguage = "vi-VN";
         let history = [];
         let currentVideoUrl = "";
-        let vocabList = []; // Bây giờ: [{word: "...", meaning: "...", timestamps: [1.23, 45.67]}]
+        let vocabList = [];
         let instantLookupEnabled = true;
         let naverLookupEnabled = false;
         let ttsVolume = 1.0;
@@ -933,7 +919,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             const s = Math.floor(seconds % 60);
             const ms = Math.floor((seconds % 1) * 1000);
             
-            return `${h.toString().padStart(2, '0')}: \( {m.toString().padStart(2, '0')}: \){s.toString().padStart(2, '0')}, ${ms.toString().padStart(3, '0')}`;
+            return `${h.toString().padStart(2, '0')}: ${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}, ${ms.toString().padStart(3, '0')}`;
        }
 
         function displaySubtitleList() {
@@ -942,7 +928,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             subtitleData.forEach((sub, index) => {
                 const div = document.createElement("div");
                 div.className = "subtitle-item";
-                div.innerHTML = `${formatTime(sub.startTime)}: <span class="korean"> \( {sub.koreanText}</span> <span class="vietnamese"> \){sub.vietnameseText}</span> <button onclick="addFavoriteToCurrentVideo( ${index}); event.stopPropagation();">Yêu thích</button>`;
+                div.innerHTML = `${formatTime(sub.startTime)}: <span class="korean"> ${sub.koreanText}</span> <span class="vietnamese">${sub.vietnameseText}</span> <button onclick="addFavoriteToCurrentVideo( ${index}); event.stopPropagation();">Yêu thích</button>`;
                 div.onclick = () => jumpToSubtitle(index);
                 subtitleList.appendChild(div);
            });
@@ -997,24 +983,32 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             document.getElementById("vocab-info-display").innerHTML = "👉 Nhấp vào từ vựng được tô màu trong phụ đề để xem chi tiết";
        }
 
-        function handleWordClick(word) {
-            const existing = vocabList.find(item => item.word === word);
-            const currentTime = subtitleData[currentSubtitleIndex]?.startTime || 0;
+        function handleWordClick(word, subtitleIndex) {
+            let existing = vocabList.find(item => item.word === word);
+            
             if (!existing) {
-                vocabList.push({ word, meaning: "Đang tra cứu...", timestamps: [currentTime] });
-            } else if (!existing.timestamps.includes(currentTime)) {
-                existing.timestamps.push(currentTime);
+                existing = { word, meaning: "Đang tra cứu...", savedIndexes: [] };
+                if (subtitleIndex !== undefined) existing.savedIndexes.push(subtitleIndex);
+                
+                vocabList.push(existing);
+                saveVocabToHistory();
+                displayVocabList();
+            } else {
+                if (!existing.savedIndexes) existing.savedIndexes = [];
+                if (subtitleIndex !== undefined && !existing.savedIndexes.includes(subtitleIndex)) {
+                    existing.savedIndexes.push(subtitleIndex);
+                    saveVocabToHistory();
+                }
             }
-            saveVocabToHistory();
-            displayVocabList();
-            lookupWord(word); // Giữ nguyên chức năng cũ
-       }
+            
+            lookupWord(word);
+        }
 
         function lookupWord(word) {
             // Luôn thêm từ vào danh sách từ vựng nếu chưa có
             const existingVocab = vocabList.find(item => item.word === word);
             if (!existingVocab) {
-                vocabList.push({ word, meaning: "Đang tra cứu...", timestamps: []});
+                vocabList.push({ word, meaning: "Đang tra cứu..."});
                 saveVocabToHistory();
                 displayVocabList();
            }
@@ -1114,7 +1108,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             const h = Math.floor(seconds / 3600).toString().padStart(2, "0");
             const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, "0");
             const s = Math.floor(seconds % 60).toString().padStart(2, "0");
-            return `${h}: \( {m}: \){s}`;
+            return `${h}: ${m}:${s}`;
        }
 
         function jumpToSubtitle(index) {
@@ -1174,6 +1168,14 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             if (nextSubtitle && nextIndex !== currentSubtitleIndex) {
                 currentSubtitleIndex = nextIndex;
                 updateSubtitleDisplay(currentSubtitleIndex);
+                
+                const autoVocabs = vocabList.filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex));
+                if (autoVocabs.length > 0) {
+                    const wordData = autoVocabs[0];
+                    const notebookVocab = getNotebookVocabInfo(wordData.word);
+                    displayVocabInfo(wordData.word, wordData, notebookVocab);
+                }
+                
                 const textToRead = ttsLanguage === "vi-VN" ? nextSubtitle.vietnameseText : nextSubtitle.koreanText;
                 const currentTimeMs = Date.now();
                 if (textToRead !== lastSpokenText || (currentTimeMs - lastSpokenTime) > 1000) {
@@ -1194,7 +1196,6 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
            }
        }
 
-        // Cập nhật updateSubtitleDisplay để tự hiển thị từ vựng khi đến subtitle
         function updateSubtitleDisplay(index) {
             const startIndex = Math.max(0, index - 2);
             const endIndex = Math.min(subtitleData.length - 1, index + 2);
@@ -1205,58 +1206,25 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 .map(line => line.split(":")[0]?.trim())
                 .filter(korean => korean);
 
-            // Quét từ vựng đã tra trong subtitle hiện tại (index)
-            const autoDisplayWords = [];
-            const currentSub = subtitleData[index];
-            if (currentSub) {
-                const wordsInSub = currentSub.koreanText.split(/\s+/).map(w => w.replace(/[^\p{Script=Hangul}]+/gu, "").trim());
-                wordsInSub.forEach(cleanWord => {
-                    const vocabItem = vocabList.find(item => item.word === cleanWord);
-                    if (vocabItem) {
-                        autoDisplayWords.push({ word: cleanWord, item: vocabItem });
-                    }
-                });
-            }
-
-            // Tự hiển thị nếu có từ khớp
-            const vocabDisplay = document.getElementById("vocab-info-display");
-            vocabDisplay.classList.add("updating");
-            setTimeout(() => {
-                if (autoDisplayWords.length > 0) {
-                    let html = "";
-                    autoDisplayWords.forEach(({ word, item }) => {
-                        const notebookInfo = getNotebookVocabInfo(word);
-                        html += generateVocabInfoHTML(word, item, notebookInfo);
-                    });
-                    vocabDisplay.innerHTML = html;
-                } else {
-                    vocabDisplay.innerHTML = "👉 Nhấp vào từ vựng được tô màu trong phụ đề để xem chi tiết";
-                }
-                vocabDisplay.classList.remove("updating");
-            }, 300);
-
             for (let i = startIndex; i <= endIndex; i++) {
                 const sub = subtitleData[i];
                 const highlightedKoreanText = sub.koreanText.split(/\s+/).map(word => {
                     const cleanWord = word.replace(/[^\p{Script=Hangul}]+/gu, "").trim();
                     const isNotebookVocab = notebookVocab.some(v => v.includes(cleanWord) || cleanWord.includes(v));
-                    const isLearned = vocabList.some(item => item.word === cleanWord);
-                    let className = "korean-word";
-                    if (isLearned) className += " learned";
-                    if (isLearned && i === index) className += " auto-highlight"; // Highlight khi tự hiển thị
+                    
                     if (isNotebookVocab) {
-                        return `<span class="\( {className}" onclick="handleWordClick(' \){cleanWord}')" 
+                        return `<span class="korean-word learned" onclick="handleWordClick('${cleanWord}', ${i})" 
                                 style="font-weight:bold;background-color:#e3f2fd;padding:2px 4px;border-radius:3px;border-bottom:2px solid #2196F3;">
                                 ${word}</span>`;
-                    }
-                    return `<span class="\( {className}" onclick="handleWordClick(' \){cleanWord}')"> ${word}</span>`;
-                }).join(" ");
+                   }
+                    return `<span class="korean-word" onclick="handleWordClick('${cleanWord}', ${i})"> ${word}</span>`;
+               }).join(" ");
                 const isCurrent = i === index ? "current" : "";
                 subtitleContent += `<div class="subtitle-line ${isCurrent}"> ${formatTime(sub.startTime)}: ${highlightedKoreanText} <span class="vietnamese"> ${sub.vietnameseText}</span> </div>`;
-            }
+           }
             document.getElementById("subtitle-display").innerHTML = subtitleContent;
             highlightSubtitle(index);
-        }
+       }
 
         function readText(text, callback) {
             if (!text) {
@@ -1413,7 +1381,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             history.forEach((item, index) => {
                 const div = document.createElement("div");
                 div.className = "history-item";
-                div.innerHTML = ` ${item.videoUrl} ${item.srtContent ? "(Có phụ đề)" : ""} ${item.vocabList && item.vocabList.length > 0 ? `( \( {item.vocabList.length} từ vựng)` : ""} <button onclick="deleteHistoryItem( \){index})">Xóa</button> `;
+                div.innerHTML = ` ${item.videoUrl} ${item.srtContent ? "(Có phụ đề)" : ""} ${item.vocabList && item.vocabList.length > 0 ? `( ${item.vocabList.length} từ vựng)` : ""} <button onclick="deleteHistoryItem(${index})">Xóa</button> `;
                 div.onclick = (e) => {
                     if (e.target.tagName !== "BUTTON") loadFromHistory(index);
                };
@@ -1439,8 +1407,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                     document.getElementById("subtitle-display").innerHTML = "";
                }
                 
-                vocabList = item.vocabList ? item.vocabList.map(v => ({...v, timestamps: v.timestamps || []})) : []; // Đảm bảo có timestamps nếu load từ history cũ
-                
+                vocabList = item.vocabList ? item.vocabList.slice() : [];
                 document.getElementById("notebooklm-vocab").value = item.notebooklmVocab || "";
                 currentVideoFavorites = item.favoriteSubtitles ? item.favoriteSubtitles.slice() : [];
                 displayVocabList();
@@ -1479,25 +1446,22 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             window.open(`https://korean.dict.naver.com/kovidict/#/search?query=${encodeURIComponent(word)}`, "_blank");
        }
 
-        // Cập nhật displayVocabList để hiển thị timestamps
         function displayVocabList() {
             const vocabListDiv = document.getElementById("vocab-list");
             vocabListDiv.innerHTML = "";
             vocabList.forEach((item, index) => {
                 const div = document.createElement("div");
                 div.className = "vocab-item";
-                const times = item.timestamps.map(t => formatTime(t)).join(", ");
                 if (naverLookupEnabled) {
                     div.className = "vocab-item-naver";
-                    div.innerHTML = `<div> <span class="korean-word clickable" onclick="openNaverDict('${item.word}')"> \( {item.word}</span> <span class="vietnamese translation"> \){item.meaning}</span> <span class="inline-meaning">(\( {times})</span> </div> <button onclick="deleteVocab( \){index})">Xóa</button> `;
-                } else {
-                    div.innerHTML = ` <input type="text" value="\( {item.word}" onchange="editVocab( \){index}, 'word', this.value)"> <input type="text" value="\( {item.meaning}" placeholder="Nhập nghĩa..." onchange="editVocab( \){index}, 'meaning', this.value)"> <span>(\( {times})</span> <button onclick="deleteVocab( \){index})">Xóa</button> `;
-                }
+                    div.innerHTML = `<div> <span class="korean-word clickable" onclick="openNaverDict('${item.word}')"> ${item.word}</span> <span class="vietnamese translation">${item.meaning}</span> </div> <button onclick="deleteVocab( ${index})">Xóa</button> `;
+               } else {
+                    div.innerHTML = ` <input type="text" value="${item.word}" onchange="editVocab( ${index}, 'word', this.value)"> <input type="text" value="${item.meaning}" placeholder="Nhập nghĩa..." onchange="editVocab( ${index}, 'meaning', this.value)"> <button onclick="deleteVocab(${index})">Xóa</button> `;
+               }
                 vocabListDiv.appendChild(div);
-            });
-        }
+           });
+       }
 
-        // Cập nhật editVocab (không ảnh hưởng timestamps)
         function editVocab(index, field, value) {
             vocabList[index][field] = value;
             saveVocabToHistory();
@@ -1545,7 +1509,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             currentVideoFavorites.forEach((sub, index) => {
                 const div = document.createElement("div");
                 div.className = "subtitle-item";
-                div.innerHTML = `<span class="korean">${sub.koreanText}</span> <span class="vietnamese"> \( {sub.vietnameseText}</span> <button onclick="removeFavorite( \){index}); event.stopPropagation();">Xóa</button>`;
+                div.innerHTML = `<span class="korean">${sub.koreanText}</span> <span class="vietnamese"> ${sub.vietnameseText}</span> <button onclick="removeFavorite(${index}); event.stopPropagation();">Xóa</button>`;
                 div.onclick = () => jumpToSubtitleByText(sub.koreanText);
                 favoriteList.appendChild(div);
            });
@@ -1846,7 +1810,7 @@ window.lookupWord = function(word) {
     // Luôn thêm từ vào danh sách từ vựng nếu chưa có
     const existingVocab = vocabList.find(item => item.word === word);
     if (!existingVocab) {
-        vocabList.push({ word, meaning: "Đang tra cứu...", timestamps: []});
+        vocabList.push({ word, meaning: "Đang tra cứu..."});
         saveVocabToHistory();
         displayVocabList();
    }
@@ -1959,33 +1923,6 @@ window.toggleNaverLookup = function(enabled) {
     const mode = enabled ? '🌐 Mở Naver Dictionary' : '💬 Hiển thị tooltip thông minh';
     alert(`Đã chuyển sang chế độ: ${mode}\n ${enabled ? 'Click vào từ sẽ mở tab Naver mới' : 'Click vào từ sẽ hiện tooltip nghĩa ngay tại chỗ'}`);
 };
-
-// Hàm mới để generate HTML cho nhiều từ (nếu có)
-function generateVocabInfoHTML(word, existingVocab, notebookVocab) {
-    let html = `<div class="vocab-info-item">`;
-    html += `<div><span class="vocab-info-korean">${word}</span>`;
-    if (existingVocab?.meaning) {
-        html += `<span class="vocab-info-meaning">${existingVocab.meaning}</span>`;
-    }
-    html += `</div>`;
-    if (notebookVocab?.meaning && (!existingVocab || notebookVocab.meaning !== existingVocab.meaning)) {
-        html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
-    }
-    const appearances = findWordAppearances(word);
-    if (appearances.length > 0) {
-        html += `<div style="margin-top:10px;font-size:0.9em;color:#555;">`;
-        html += `<div>🕒 Xuất hiện trong video:</div>`;
-        appearances.forEach((time, idx) => {
-            html += `<div style="margin-top:4px;">
-                <span class="vocab-info-time">${formatTime(time.startTime)}</span>
-                <button onclick="jumpToSubtitle(${time.subtitleIndex})">Xem</button>
-            </div>`;
-        });
-        html += `</div>`;
-    }
-    html += `</div>`;
-    return html;
-}
     </script>
 
     <!-- Nút Reset Dữ Liệu - Được thêm tự động -->
@@ -2072,4 +2009,4 @@ function generateVocabInfoHTML(word, existingVocab, notebookVocab) {
     </style>
 
 </body>
-    </html>
+</html>
