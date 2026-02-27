@@ -1115,36 +1115,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
            }
             
-            const appearances = findWordAppearances(word);
-            if (appearances.length > 0) {
-                html += `<div style="margin-top:10px;font-size:0.9em;color:#555;">`;
-                html += `<div>🕒 Xuất hiện trong video:</div>`;
-                appearances.forEach((time, idx) => {
-                    html += `<div style="margin-top:4px;">
-                        <span class="vocab-info-time">${formatTime(time.startTime)}</span>
-                        <button onclick="jumpToSubtitle(${time.subtitleIndex})">Xem</button>
-                    </div>`;
-               });
-                html += `</div>`;
-           }
-            
-            html += `</div>`;
-            container.innerHTML = html;
-       }
-
-        function findWordAppearances(word) {
-            const result = [];
-            const cleanWord = word.replace(/[^\p{Script=Hangul}]+/gu, "").trim();
-            if (!cleanWord || !subtitleData.length) return result;
-            
-            subtitleData.forEach((sub, idx) => {
-                if (sub.koreanText.includes(cleanWord)) {
-                    result.push({
-                        startTime: sub.startTime,
-                        subtitleIndex: idx
-                   });
-               }
-           });
+            );
             
             return result;
        }
@@ -2255,4 +2226,4 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 </body>
-    </html>
+</html>
