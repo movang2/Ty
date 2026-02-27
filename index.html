@@ -2018,79 +2018,195 @@ window.toggleNaverLookup = function(enabled) {
     </style>
 
 
-<!-- SRT PROCESSING TOOL -->
-<div style="margin-top:15px; border:1px solid #ccc; padding:10px;">
-    <h3>⚙️ Xử lý phụ đề SRT</h3>
-
-    <label>Số dòng muốn gộp:</label>
-    <input type="number" id="merge-count" value="2" min="1" style="width:80px">
-
-    <br><br>
-
-    <label>Ký tự muốn xóa (vd: >> - ♪):</label>
-    <input type="text" id="remove-chars-srt" placeholder="Nhập ký tự cần xóa">
-
-    <br><br>
-
-    <button onclick="processSRT()">🚀 Gộp & Làm sạch phụ đề</button>
+<!-- 🔧 SRT MERGE + CLEAN + SENTENCE SPLIT UI -->
+<div id="srt-tools" style="position:fixed; right:10px; bottom:10px; width:320px; max-height:70vh; overflow:auto; background:#ffffff; border:1px solid #ddd; border-radius:12px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); z-index:9999;">
+  <button id="btn-hide-srt" style="position:absolute; top:6px; right:8px; cursor:pointer;">❌</button>
+  <h3 style="margin:0 0 8px 0;">⚙️ Xử lý SRT</h3>
+  <div style="font-size:12px; color:#666; margin-bottom:8px;">Gộp N dòng, xoá ký tự rác, tách câu & phân bổ thời gian cho TTS</div>
+  <label>Số dòng muốn gộp (N):</label>
+  <input id="merge-count" type="number" value="2" min="1" style="width:80px; margin-left:6px;">
+  <div style="height:8px;"></div>
+  <label>Ký tự muốn xoá (vd: >> - ♪):</label>
+  <input id="remove-chars-srt" type="text" placeholder="Nhập ký tự cần xoá" style="width:100%;">
+  <div style="height:10px;"></div>
+  <button id="btn-process-srt" style="width:100%; padding:8px; border-radius:8px; cursor:pointer;">🚀 Gộp + Làm sạch + Tách câu</button>
+  <div style="height:6px;"></div>
+  <button id="btn-download-srt" style="width:100%; padding:8px; border-radius:8px; cursor:pointer;">💾 Tải SRT sau khi xử lý</button>
+  <div id="srt-status" style="font-size:12px; color:#0a7; margin-top:6px;"></div>
 </div>
 
+
 <script>
-function processSRT() {
-    if (!subtitleData || subtitleData.length === 0) {
-        alert("Chưa có phụ đề để xử lý!");
-        return;
-    }
-
-    const mergeCount = parseInt(document.getElementById("merge-count").value) || 1;
-    const charsToRemove = document.getElementById("remove-chars-srt").value || "";
-
-    let newSubtitles = [];
-
-    for (let i = 0; i < subtitleData.length; i += mergeCount) {
-        let group = subtitleData.slice(i, i + mergeCount);
-        if (group.length === 0) continue;
-
-        let start = group[0].startTime;
-        let end = group[group.length - 1].endTime;
-
-        let korean = "";
-        let vietnamese = "";
-
-        group.forEach(item => {
-            korean += (item.koreanText || "") + " ";
-            vietnamese += (item.vietnameseText || "") + " ";
-        });
-
-        korean = cleanText(korean.trim(), charsToRemove);
-        vietnamese = cleanText(vietnamese.trim(), charsToRemove);
-
-        newSubtitles.push({
-            startTime: start,
-            endTime: end,
-            koreanText: korean,
-            vietnameseText: vietnamese,
-            fullText: korean + " " + vietnamese
-        });
-    }
-
-    subtitleData = newSubtitles;
-    alert("✅ Đã gộp phụ đề thành công: " + subtitleData.length + " dòng");
-    if (typeof displaySubtitleList === "function") {
-        displaySubtitleList();
-    }
-}
-
+// ====== UTILITIES ======
 function cleanText(text, chars) {
-    if (!chars) return text;
-    let result = text;
+    if (!chars) return (text || "").trim();
+    let result = text || "";
     for (let i = 0; i < chars.length; i++) {
-        let c = chars[i];
+        const c = chars[i];
         result = result.split(c).join("");
     }
-    result = result.replace(/\s+/g, " ").trim();
+    return result.replace(/\s+/g, " ").trim();
+}
+
+function splitSentences(text) {
+    if (!text) return [];
+    return text
+        .split(/(?<=[.!?…])\s+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+}
+
+function distributeTime(start, end, sentences) {
+    const totalDuration = Math.max(0, (end - start));
+    if (!sentences || sentences.length === 0 || totalDuration === 0) return [];
+    const lengths = sentences.map(s => Math.max(1, s.length));
+    const totalLength = lengths.reduce((a,b)=>a+b,0);
+    let result = [];
+    let currentTime = start;
+    sentences.forEach((s, i) => {
+        let ratio = lengths[i] / totalLength;
+        let duration = totalDuration * ratio;
+        let sStart = currentTime;
+        let sEnd = (i === sentences.length - 1) ? end : (currentTime + duration);
+        result.push({ text: s, start: sStart, end: sEnd });
+        currentTime = sEnd;
+    });
     return result;
 }
+
+function secondsToSrtTime(sec){
+    if (isNaN(sec)) sec = 0;
+    sec = Math.max(0, sec);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    const ms = Math.floor((sec - Math.floor(sec)) * 1000);
+    const pad = (n, z=2)=> ('00'+n).slice(-z);
+    return `${pad(h)}:${pad(m)}:${pad(s)},${pad(ms,3)}`;
+}
+
+function toSrtText(items){
+    let out = [];
+    for (let i = 0; i < items.length; i++){
+        const it = items[i];
+        const start = secondsToSrtTime(it.startTime);
+        const end = secondsToSrtTime(it.endTime);
+        const text = (it.koreanText || it.fullText || "").trim();
+        out.push(`${i+1}\n${start} --> ${end}\n${text}`);
+    }
+    return out.join("\n\n");
+}
+
+// ====== CORE PROCESS ======
+function processSRT(){
+    try {
+        if (!window.subtitleData || !Array.isArray(window.subtitleData) || window.subtitleData.length === 0){
+            alert("Chưa có phụ đề để xử lý!");
+            return;
+        }
+        const mergeCount = parseInt(document.getElementById('merge-count').value) || 1;
+        const charsToRemove = document.getElementById('remove-chars-srt').value || "";
+
+        let newSubtitles = [];
+        for (let i = 0; i < window.subtitleData.length; i += mergeCount) {
+            const group = window.subtitleData.slice(i, i + mergeCount);
+            if (!group || group.length === 0) continue;
+
+            const start = group[0].startTime;
+            const end = group[group.length - 1].endTime;
+
+            let korean = "";
+            let vietnamese = "";
+
+            group.forEach(item => {
+                korean += (item.koreanText || item.text || "") + " ";
+                if (item.vietnameseText) vietnamese += item.vietnameseText + " ";
+            });
+
+            korean = cleanText(korean.trim(), charsToRemove);
+            vietnamese = cleanText(vietnamese.trim(), charsToRemove);
+
+            // split sentences & distribute time
+            const sentences = splitSentences(korean);
+            const sentenceTimings = distributeTime(start, end, sentences);
+
+            newSubtitles.push({
+                startTime: start,
+                endTime: end,
+                koreanText: korean,
+                vietnameseText: vietnamese,
+                sentences: sentenceTimings,
+                fullText: (korean + " " + vietnamese).trim()
+            });
+        }
+
+        window.subtitleData = newSubtitles;
+
+        if (typeof window.displaySubtitleList === 'function') {
+            window.displaySubtitleList();
+        }
+
+        const el = document.getElementById('srt-status');
+        if (el) el.textContent = `Đã xử lý xong: ${newSubtitles.length} dòng.`;
+        alert("✅ Đã gộp + làm sạch + tách câu thành công!");
+    } catch (e){
+        console.error(e);
+        alert("Lỗi khi xử lý SRT: " + e.message);
+    }
+}
+
+function downloadProcessedSRT(){
+    try {
+        if (!window.subtitleData || !Array.isArray(window.subtitleData) || window.subtitleData.length === 0){
+            alert("Chưa có dữ liệu để tải!");
+            return;
+        }
+        const srtText = toSrtText(window.subtitleData);
+        const blob = new Blob([srtText], {type: 'text/plain;charset=utf-8'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'processed_subtitles.srt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } catch (e){
+        console.error(e);
+        alert("Lỗi khi xuất SRT: " + e.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    const btn1 = document.getElementById('btn-process-srt');
+    const btn2 = document.getElementById('btn-download-srt');
+    if (btn1) btn1.addEventListener('click', processSRT);
+    if (btn2) btn2.addEventListener('click', downloadProcessedSRT);
+});
+</script>
+
+
+<button id="btn-show-srt" style="position:fixed; right:10px; bottom:10px; z-index:9998; display:none; padding:8px 10px; border-radius:8px;">⚙️ SRT</button>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const panel = document.getElementById('srt-tools');
+    const hideBtn = document.getElementById('btn-hide-srt');
+    const showBtn = document.getElementById('btn-show-srt');
+    const downloadBtn = document.getElementById('btn-download-srt');
+
+    function hidePanel(){
+        if(panel) panel.style.display='none';
+        if(showBtn) showBtn.style.display='block';
+    }
+    function showPanel(){
+        if(panel) panel.style.display='block';
+        if(showBtn) showBtn.style.display='none';
+    }
+
+    if(hideBtn) hideBtn.addEventListener('click', hidePanel);
+    if(showBtn) showBtn.addEventListener('click', showPanel);
+    if(downloadBtn) downloadBtn.addEventListener('click', hidePanel);
+});
 </script>
 
 </body>
