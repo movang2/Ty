@@ -442,6 +442,15 @@
                     </div>
                     <button onclick="linkVocabToSubtitles()">Liên kết từ vựng với phụ đề</button>
                     <script>
+
+// ===== AUTO SHOW SRT PANEL =====
+function showSRTPanel() {
+    const panel = document.getElementById('srt-tools');
+    const showBtn = document.getElementById('btn-show-srt');
+    if (panel) panel.style.display = 'block';
+    if (showBtn) showBtn.style.display = 'none';
+}
+
                         function removeCharacters() {
                             const textArea = document.getElementById("notebooklm-vocab");
                             const charsToRemove = document.getElementById("chars-to-remove").value;
@@ -476,7 +485,8 @@
 
     <script>
         let youtubePlayer;
-        let subtitleData = [];
+        window.subtitleData = [];
+        let subtitleData = window.subtitleData;
         let currentSubtitleIndex = -1;
         let isSpeaking = false;
         let ttsSpeed = 1.5;
@@ -673,6 +683,20 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                }
                 alert(`Đã tải ${subtitleData.length} dòng phụ đề tự động!`);
                 displaySubtitleList();
+
+                // Hiện bảng xử lý SRT
+                showSRTPanel();
+                setTimeout(() => {
+                    const panel = document.getElementById('srt-tools');
+                    if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+
+                    // Hiện bảng xử lý SRT
+                    showSRTPanel();
+                    setTimeout(() => {
+                        const panel = document.getElementById('srt-tools');
+                        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
                 saveToHistory(currentVideoUrl, response.text, document.getElementById("notebooklm-vocab").value);
            } catch (error) {
                 console.error("Lỗi tải phụ đề tự động:", error);
@@ -783,25 +807,46 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             alert(`Đã áp dụng lệch ${offset} giây vĩnh viễn cho toàn bộ phụ đề.`);
        }
 
-        function loadSubtitles() {
+        async function loadSubtitles() {
             const fileInput = document.getElementById("subtitle-file").files[0];
             if (!fileInput) {
                 alert("Vui lòng chọn file SRT!");
                 return;
-           }
+            }
+
             const reader = new FileReader();
-            reader.onload = (event) => {
-                subtitleData = parseSRT(event.target.result);
-                if (subtitleData.length === 0) {
-                    alert("File SRT không hợp lệ hoặc trống!");
-                    return;
-               }
-                alert(`Đã tải ${subtitleData.length} dòng phụ đề!`);
-                displaySubtitleList();
-                saveToHistory(currentVideoUrl, event.target.result, document.getElementById("notebooklm-vocab").value);
-           };
+            reader.onload = async (event) => {
+                try {
+                    subtitleData = parseSRT(event.target.result);
+                    window.subtitleData = subtitleData;
+
+                    if (!subtitleData || subtitleData.length === 0) {
+                        alert("File SRT không hợp lệ hoặc trống!");
+                        return;
+                    }
+
+                    alert(`Đã tải và xử lý ${subtitleData.length} dòng phụ đề!`);
+
+                    displaySubtitleList();
+
+                    // Nếu video đã load thì tự động gán và chạy luôn
+                    if (youtubePlayer && youtubePlayer.seekTo) {
+                        await waitForPlayer();
+                        youtubePlayer.seekTo(subtitleData[0].startTime, true);
+                        youtubePlayer.playVideo();
+                        setTimeout(startReading, 800);
+                    }
+
+                    saveToHistory(currentVideoUrl, event.target.result, document.getElementById("notebooklm-vocab").value);
+
+                } catch (err) {
+                    console.error("Lỗi xử lý SRT:", err);
+                    alert("Có lỗi khi xử lý file SRT.");
+                }
+            };
+
             reader.readAsText(fileInput);
-       }
+        }
 
         function parseSRT(srtContent) {
             const subtitleBlocks = srtContent.trim().split(/\n\s*\n/);
@@ -2210,4 +2255,4 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 </body>
-</html>
+    </html>
