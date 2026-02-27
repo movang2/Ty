@@ -1070,24 +1070,18 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
            }
             
-            function displayVocabInfo(word, existingVocab, notebookVocab) {
-    const container = document.getElementById("vocab-info-display");
-    let html = `<div class="vocab-info-item">`;
-    
-    html += `<div><span class="vocab-info-korean">${word}</span>`;
-    
-    if (existingVocab?.meaning) {
-        html += `<span class="vocab-info-meaning">${existingVocab.meaning}</span>`;
-    }
-    html += `</div>`;
-    
-    if (notebookVocab?.meaning && (!existingVocab || notebookVocab.meaning !== existingVocab.meaning)) {
-        html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
-    }
-    
-    html += `</div>`;
-    container.innerHTML = html;
-}
+            const appearances = findWordAppearances(word);
+            if (appearances.length > 0) {
+                html += `<div style="margin-top:10px;font-size:0.9em;color:#555;">`;
+                html += `<div>🕒 Xuất hiện trong video:</div>`;
+                appearances.forEach((time, idx) => {
+                    html += `<div style="margin-top:4px;">
+                        <span class="vocab-info-time">${formatTime(time.startTime)}</span>
+                        <button onclick="jumpToSubtitle(${time.subtitleIndex})">Xem</button>
+                    </div>`;
+               });
+                html += `</div>`;
+           }
             
             html += `</div>`;
             container.innerHTML = html;
@@ -2022,6 +2016,82 @@ window.toggleNaverLookup = function(enabled) {
         box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
     }
     </style>
+
+
+<!-- SRT PROCESSING TOOL -->
+<div style="margin-top:15px; border:1px solid #ccc; padding:10px;">
+    <h3>⚙️ Xử lý phụ đề SRT</h3>
+
+    <label>Số dòng muốn gộp:</label>
+    <input type="number" id="merge-count" value="2" min="1" style="width:80px">
+
+    <br><br>
+
+    <label>Ký tự muốn xóa (vd: >> - ♪):</label>
+    <input type="text" id="remove-chars-srt" placeholder="Nhập ký tự cần xóa">
+
+    <br><br>
+
+    <button onclick="processSRT()">🚀 Gộp & Làm sạch phụ đề</button>
+</div>
+
+<script>
+function processSRT() {
+    if (!subtitleData || subtitleData.length === 0) {
+        alert("Chưa có phụ đề để xử lý!");
+        return;
+    }
+
+    const mergeCount = parseInt(document.getElementById("merge-count").value) || 1;
+    const charsToRemove = document.getElementById("remove-chars-srt").value || "";
+
+    let newSubtitles = [];
+
+    for (let i = 0; i < subtitleData.length; i += mergeCount) {
+        let group = subtitleData.slice(i, i + mergeCount);
+        if (group.length === 0) continue;
+
+        let start = group[0].startTime;
+        let end = group[group.length - 1].endTime;
+
+        let korean = "";
+        let vietnamese = "";
+
+        group.forEach(item => {
+            korean += (item.koreanText || "") + " ";
+            vietnamese += (item.vietnameseText || "") + " ";
+        });
+
+        korean = cleanText(korean.trim(), charsToRemove);
+        vietnamese = cleanText(vietnamese.trim(), charsToRemove);
+
+        newSubtitles.push({
+            startTime: start,
+            endTime: end,
+            koreanText: korean,
+            vietnameseText: vietnamese,
+            fullText: korean + " " + vietnamese
+        });
+    }
+
+    subtitleData = newSubtitles;
+    alert("✅ Đã gộp phụ đề thành công: " + subtitleData.length + " dòng");
+    if (typeof displaySubtitleList === "function") {
+        displaySubtitleList();
+    }
+}
+
+function cleanText(text, chars) {
+    if (!chars) return text;
+    let result = text;
+    for (let i = 0; i < chars.length; i++) {
+        let c = chars[i];
+        result = result.split(c).join("");
+    }
+    result = result.replace(/\s+/g, " ").trim();
+    return result;
+}
+</script>
 
 </body>
 </html>
