@@ -1115,7 +1115,25 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
            }
             
-            );
+            
+            
+            html += `</div>`;
+            container.innerHTML = html;
+       }
+
+        function findWordAppearances(word) {
+            const result = [];
+            const cleanWord = word.replace(/[^\p{Script=Hangul}]+/gu, "").trim();
+            if (!cleanWord || !subtitleData.length) return result;
+            
+            subtitleData.forEach((sub, idx) => {
+                if (sub.koreanText.includes(cleanWord)) {
+                    result.push({
+                        startTime: sub.startTime,
+                        subtitleIndex: idx
+                   });
+               }
+           });
             
             return result;
        }
@@ -2226,4 +2244,4 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 </body>
-</html>
+    </html>
