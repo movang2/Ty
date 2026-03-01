@@ -2450,6 +2450,139 @@ window.deleteCloudData = async function() {
 </script>
 
 
+
+<!-- Supabase Integration - Cloud Sync -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://lkempnhpvnexizklszvg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_O5XTSRyKL0pabmSRvWRm2Q_o8kslgsg';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth:{autoRefreshToken:true,persistSession:true}
+});
+
+document.addEventListener("DOMContentLoaded",()=>{
+const loginBtnMain=document.getElementById('loginBtnMain');
+const logoutBtnMain=document.getElementById('logoutBtnMain');
+
+if(loginBtnMain){
+loginBtnMain.onclick=async()=>{
+ const {error}=await supabase.auth.signInWithOAuth({
+   provider:'google',
+   options:{redirectTo:window.location.origin}
+ });
+ if(error) alert("Login error: "+error.message);
+};
+}
+
+if(logoutBtnMain){
+logoutBtnMain.onclick=async()=>{
+ await supabase.auth.signOut();
+};
+}
+
+supabase.auth.onAuthStateChange((event,session)=>{
+ const user=session?.user;
+ if(document.getElementById('uploadBtn'))
+ document.getElementById('uploadBtn').disabled=!user;
+ if(document.getElementById('downloadBtn'))
+ document.getElementById('downloadBtn').disabled=!user;
+ if(document.getElementById('deleteCloudBtn'))
+ document.getElementById('deleteCloudBtn').disabled=!user;
+
+ if(user){
+   if(document.getElementById('userEmailDisplay'))
+   document.getElementById('userEmailDisplay').textContent=user.email;
+ }else{
+   if(document.getElementById('userEmailDisplay'))
+   document.getElementById('userEmailDisplay').textContent="";
+ }
+});
+
+});
+
+window.uploadToCloud=async function(){
+
+const {data:{user}}=await supabase.auth.getUser();
+if(!user){alert("Login first");return;}
+
+const allData={};
+for(let i=0;i<localStorage.length;i++){
+ const key=localStorage.key(i);
+ allData[key]=localStorage.getItem(key);
+}
+
+const totalSize=JSON.stringify(allData).length;
+const sizeMB=(totalSize/1024/1024).toFixed(2);
+
+const {error}=await supabase
+.from("user_data")
+.upsert({
+ user_id:user.id,
+ data:allData,
+ updated_at:new Date().toISOString(),
+ size_mb:parseFloat(sizeMB)
+},{onConflict:"user_id"});
+
+if(error){
+ alert("Upload error "+error.message);
+}else{
+ alert("Upload success "+sizeMB+"MB");
+}
+
+};
+
+window.downloadFromCloud=async function(){
+
+const {data:{user}}=await supabase.auth.getUser();
+if(!user){alert("Login first");return;}
+
+const {data,error}=await supabase
+.from("user_data")
+.select("data")
+.eq("user_id",user.id)
+.single();
+
+if(error){
+ alert(error.message);
+ return;
+}
+
+if(!data||!data.data){
+ alert("No data");
+ return;
+}
+
+localStorage.clear();
+
+Object.keys(data.data).forEach(key=>{
+ localStorage.setItem(key,data.data[key]);
+});
+
+location.reload();
+};
+
+window.deleteCloudData=async function(){
+
+const {data:{user}}=await supabase.auth.getUser();
+if(!user){alert("Login first");return;}
+
+if(!confirm("Delete cloud data?")) return;
+
+const {error}=await supabase
+.from("user_data")
+.delete()
+.eq("user_id",user.id);
+
+if(error){
+ alert(error.message);
+}else{
+ alert("Deleted");
+}
+
+};
+</script>
+
 </body>
     </html>
 
