@@ -2243,5 +2243,85 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+
+<!-- Firebase Integration -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC3ArgRBdzrj-Njnq6A9KB--9LT45LUNJ8",
+  authDomain: "yt-srt-sync.firebaseapp.com",
+  projectId: "yt-srt-sync",
+  storageBucket: "yt-srt-sync.firebasestorage.app",
+  messagingSenderId: "64219190974",
+  appId: "1:64219190974:web:ae6ca30879b9c654d4b0ef"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// Create login UI
+const loginDiv = document.createElement("div");
+loginDiv.style.position = "fixed";
+loginDiv.style.top = "10px";
+loginDiv.style.right = "10px";
+loginDiv.style.zIndex = "9999";
+loginDiv.innerHTML = `
+  <button id="loginBtn">Đăng nhập Google</button>
+  <button id="logoutBtn" style="display:none;">Đăng xuất</button>
+  <span id="userEmail" style="margin-left:8px;"></span>
+`;
+document.body.appendChild(loginDiv);
+
+document.getElementById("loginBtn").onclick = async () => {
+  await signInWithPopup(auth, provider);
+};
+
+document.getElementById("logoutBtn").onclick = async () => {
+  await signOut(auth);
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    document.getElementById("loginBtn").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "inline-block";
+    document.getElementById("userEmail").innerText = user.email;
+
+    // Load cloud data
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.localStorageData) {
+        Object.keys(data.localStorageData).forEach(key => {
+          localStorage.setItem(key, data.localStorageData[key]);
+        });
+        location.reload();
+      }
+    }
+
+    // Auto sync every 5 seconds
+    setInterval(async () => {
+      const allData = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        allData[key] = localStorage.getItem(key);
+      }
+      await setDoc(ref, { localStorageData: allData });
+    }, 5000);
+
+  } else {
+    document.getElementById("loginBtn").style.display = "inline-block";
+    document.getElementById("logoutBtn").style.display = "none";
+    document.getElementById("userEmail").innerText = "";
+  }
+});
+</script>
+
 </body>
     </html>
+
