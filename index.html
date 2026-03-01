@@ -344,6 +344,35 @@
     </style>
 </head>
 <body>
+<!-- ===== GIAO DIỆN ĐĂNG NHẬP VÀ ĐỒNG BỘ CỐ ĐỊNH ===== -->
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div id="userInfo" style="display: flex; align-items: center; gap: 10px;">
+                <img id="userAvatar" src="" style="width: 40px; height: 40px; border-radius: 50%; display: none;">
+                <span id="userEmailDisplay" style="font-weight: bold;"></span>
+            </div>
+            <button id="loginBtnMain" style="padding: 8px 20px; background: white; color: #667eea; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">🔐 Đăng nhập Google</button>
+            <button id="logoutBtnMain" style="padding: 8px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none;">🚪 Đăng xuất</button>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="uploadBtn" onclick="uploadToCloud()" style="padding: 8px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" disabled>📤 Upload lên Cloud</button>
+            <button id="downloadBtn" onclick="downloadFromCloud()" style="padding: 8px 20px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" disabled>📥 Tải từ Cloud</button>
+            <button id="deleteCloudBtn" onclick="deleteCloudData()" style="padding: 8px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" disabled>🗑️ Xóa dữ liệu Cloud</button>
+        </div>
+    </div>
+
+    <div id="syncStatusMain" style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px; font-size: 14px; text-align: center;">
+        ⚡ Chưa đăng nhập
+    </div>
+
+    <div id="cloudInfo" style="margin-top: 8px; font-size: 12px; opacity: 0.8; display: flex; justify-content: space-between;">
+        <span id="lastSyncInfo">Lần đồng bộ cuối: Chưa có</span>
+        <span id="dataSizeInfo">Dung lượng: 0 KB</span>
+    </div>
+</div>
+
     <h1>Video YouTube với Phụ đề, TTS và Từ vựng (Hoàn hảo)</h1>
     <div class="container">
         <input type="text" id="video-url" placeholder="Nhập link YouTube (ví dụ: https://www.youtube.com/watch?v=dQw4w9WgXcQ)">
@@ -2244,7 +2273,9 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 
-<!-- Firebase Integration -->
+
+
+<!-- Firebase Integration - Manual Sync Only -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -2264,61 +2295,39 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Create login UI
-const loginDiv = document.createElement("div");
-loginDiv.style.position = "fixed";
-loginDiv.style.top = "10px";
-loginDiv.style.right = "10px";
-loginDiv.style.zIndex = "9999";
-loginDiv.innerHTML = `
-  <button id="loginBtn">Đăng nhập Google</button>
-  <button id="logoutBtn" style="display:none;">Đăng xuất</button>
-  <span id="userEmail" style="margin-left:8px;"></span>
-`;
-document.body.appendChild(loginDiv);
-
-document.getElementById("loginBtn").onclick = async () => {
-  await signInWithPopup(auth, provider);
-};
-
-document.getElementById("logoutBtn").onclick = async () => {
-  await signOut(auth);
-};
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    document.getElementById("loginBtn").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "inline-block";
-    document.getElementById("userEmail").innerText = user.email;
-
-    // Load cloud data
-    const ref = doc(db, "users", user.uid);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      const data = snap.data();
-      if (data.localStorageData) {
-        Object.keys(data.localStorageData).forEach(key => {
-          localStorage.setItem(key, data.localStorageData[key]);
-        });
-        location.reload();
-      }
-    }
-
-    // Auto sync every 5 seconds
-    setInterval(async () => {
-      const allData = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        allData[key] = localStorage.getItem(key);
-      }
-      await setDoc(ref, { localStorageData: allData });
-    }, 5000);
-
-  } else {
-    document.getElementById("loginBtn").style.display = "inline-block";
-    document.getElementById("logoutBtn").style.display = "none";
-    document.getElementById("userEmail").innerText = "";
+window.uploadToCloud = async function() {
+  const user = auth.currentUser;
+  if (!user) { alert('Vui lòng đăng nhập!'); return; }
+  const allData = {};
+  for (let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    allData[k]=localStorage.getItem(k);
   }
+  await setDoc(doc(db,"users",user.uid),{localStorageData:allData,lastSync:new Date().toISOString()});
+  alert("Upload thành công");
+};
+
+window.downloadFromCloud = async function() {
+  const user = auth.currentUser;
+  if (!user) { alert('Vui lòng đăng nhập!'); return; }
+  const snap = await getDoc(doc(db,"users",user.uid));
+  if (!snap.exists()){ alert("Không có dữ liệu"); return; }
+  localStorage.clear();
+  const data=snap.data().localStorageData||{};
+  Object.keys(data).forEach(k=>localStorage.setItem(k,data[k]));
+  alert("Tải xong, reload");
+  location.reload();
+};
+
+document.getElementById('loginBtnMain').onclick = async () => { await signInWithPopup(auth, provider); };
+document.getElementById('logoutBtnMain').onclick = async () => { await signOut(auth); };
+
+onAuthStateChanged(auth,(user)=>{
+  document.getElementById('loginBtnMain').style.display = user?'none':'inline-block';
+  document.getElementById('logoutBtnMain').style.display = user?'inline-block':'none';
+  document.getElementById('uploadBtn').disabled = !user;
+  document.getElementById('downloadBtn').disabled = !user;
+  document.getElementById('deleteCloudBtn').disabled = !user;
 });
 </script>
 
