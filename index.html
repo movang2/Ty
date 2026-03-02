@@ -341,7 +341,17 @@
         transform: translateY(0);
    }
 }
-    </style>
+    
+@keyframes glow {
+    0% { box-shadow: 0 0 5px #ffeb3b; }
+    50% { box-shadow: 0 0 15px #ff9800; }
+    100% { box-shadow: 0 0 5px #ffeb3b; }
+}
+
+.korean-word.learned {
+    animation: glow 1.5s infinite;
+}
+</style>
 </head>
 <body>
 <!-- ===== GIAO DIỆN ĐĂNG NHẬP VÀ ĐỒNG BỘ CỐ ĐỊNH ===== -->
@@ -576,6 +586,25 @@ function showSRTPanel() {
             container.innerHTML = "";
 
             vocabArray.forEach(word => {
+                const matchIndex = findBestSubtitleIndex(word.korean);  
+
+                if (matchIndex !== -1) {  
+                    let existing = vocabList.find(v => v.word === word.korean);  
+
+                    if (!existing) {  
+                        vocabList.push({  
+                            word: word.korean,  
+                            meaning: word.meaning,  
+                            savedIndexes: [matchIndex],  
+                            isLinked: true  
+                        });  
+                    } else {  
+                        existing.meaning = word.meaning;  
+                        existing.savedIndexes = [matchIndex];  
+                        existing.isLinked = true;  
+                    }  
+                }
+
                 const div = document.createElement("div");
                 div.textContent = `${word.korean} ${word.meaning ? `- ${word.meaning}` : ""}`;
                 div.className = "clickable-vocab";
@@ -1232,9 +1261,9 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 currentSubtitleIndex = nextIndex;
                 updateSubtitleDisplay(currentSubtitleIndex);
                 
-                const autoVocabs = vocabList.filter(v => 
-                    v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex)
-                );
+                const autoVocabs = vocabList
+                .filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex))
+                .sort((a, b) => (b.isLinked ? 1 : 0) - (a.isLinked ? 1 : 0));
                 if (autoVocabs.length > 0) {
                     const wordData = autoVocabs[0];
                     const notebookVocab = getNotebookVocabInfo(wordData.word);
@@ -1280,17 +1309,28 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
 
             for (let i = startIndex; i <= endIndex; i++) {
                 const sub = subtitleData[i];
+                const linkedVocab = vocabList.find(v =>
+                    v.savedIndexes &&
+                    v.savedIndexes.includes(i)
+                );
+
                 const highlightedKoreanText = sub.koreanText.split(/\s+/).map(word => {
                     const cleanWord = word.replace(/[^\p{Script=Hangul}]+/gu, "").trim();
-                    const isNotebookVocab = notebookVocab.some(v => v.includes(cleanWord) || cleanWord.includes(v));
-                    
-                    if (isNotebookVocab) {
-                        return `<span class="korean-word learned" onclick="handleWordClick('${cleanWord}', ${i})" 
-                                style="font-weight:bold;background-color:#e3f2fd;padding:2px 4px;border-radius:3px;border-bottom:2px solid #2196F3;">
-                                ${word}</span>`;
-                   }
-                    return `<span class="korean-word" onclick="handleWordClick('${cleanWord}', ${i})"> ${word}</span>`;
-               }).join(" ");
+
+                    if (linkedVocab && cleanWord.includes(linkedVocab.word)) {  
+                        return `<span class="korean-word learned"  
+                            style="background-color:#ffeb3b;  
+                                   font-weight:bold;  
+                                   border-radius:4px;  
+                                   padding:2px 6px;">  
+                            ${word}</span>`;  
+                    }  
+
+                    return `<span class="korean-word"  
+                        onclick="handleWordClick('${cleanWord}', ${i})">  
+                        ${word}</span>`;
+
+                }).join(" ");
                 const isCurrent = i === index ? "current" : "";
                 subtitleContent += `<div class="subtitle-line ${isCurrent}"> ${formatTime(sub.startTime)}: ${highlightedKoreanText} <span class="vietnamese"> ${sub.vietnameseText}</span> </div>`;
            }
