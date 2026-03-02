@@ -1159,25 +1159,98 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
 }
 
         function displayVocabInfo(word, existingVocab, notebookVocab) {
-            const container = document.getElementById("vocab-info-display");
-            let html = `<div class="vocab-info-item">`;
-            
-            html += `<div><span class="vocab-info-korean">${word}</span>`;
-            
-            if (existingVocab?.meaning) {
-                html += `<span class="vocab-info-meaning">${existingVocab.meaning}</span>`;
-           }
-            html += `</div>`;
-            
-            if (notebookVocab?.meaning && (!existingVocab || notebookVocab.meaning !== existingVocab.meaning)) {
-                html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
-           }
-            
-            
-            
-            html += `</div>`;
-            container.innerHTML = html;
-       }
+      const container = document.getElementById("vocab-info-display");
+      
+      // Thu thập các nguồn
+      const sources = [];
+      
+      // Thêm từ NotebookLM nếu có
+      if (notebookVocab && notebookVocab.meaning && notebookVocab.meaning.trim() !== "") {
+          sources.push({
+              type: 'notebook',
+              icon: '📔',
+              label: 'NotebookLM',
+              meaning: notebookVocab.meaning,
+              color: '#9c27b0'
+          });
+      }
+      
+      // Thêm từ Google Translate nếu có
+      if (existingVocab && existingVocab.meaning && existingVocab.meaning !== "Đang tra cứu...") {
+          // Kiểm tra xem có bị trùng với notebook không
+          const isDuplicate = sources.some(s => s.meaning === existingVocab.meaning);
+          if (!isDuplicate) {
+              sources.push({
+                  type: 'google',
+                  icon: '🌐',
+                  label: 'Google Dịch',
+                  meaning: existingVocab.meaning,
+                  color: '#4285f4'
+              });
+          }
+      }
+      
+      // Nếu không có nguồn nào
+      if (sources.length === 0) {
+          container.innerHTML = `
+              <div class="vocab-info-item" style="border-left-color: #607d8b; padding: 15px; text-align: center;">
+                  <div style="color: #607d8b; font-style: italic;">
+                      👉 Nhấp vào từ vựng được tô màu trong phụ đề để xem chi tiết
+                  </div>
+              </div>
+          `;
+          return;
+      }
+      
+      // Xây dựng HTML hiển thị tất cả các nguồn
+      let html = `<div class="vocab-info-item" style="border-left-color: #4CAF50; padding: 15px;">`;
+      
+      // Header với từ và số lượng nguồn
+      html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">
+          <span style="font-size: 1.4em; font-weight: bold; color: #2196F3;">${word}</span>
+          ${sources.length > 1 ? 
+              `<span style="background: #4CAF50; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+                  🥇 ${sources.length} nguồn
+              </span>` : 
+              `<span style="background: #607d8b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px;">
+                  1 nguồn
+              </span>`
+          }
+      </div>`;
+      
+      // Hiển thị từng nguồn
+      sources.forEach((source, index) => {
+          html += `
+              <div style="margin-bottom: ${index < sources.length - 1 ? '15px' : '0'}; 
+                          background: ${source.color}10;
+                          border-radius: 8px;
+                          padding: 12px;">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                      <span style="font-size: 1.2em;">${source.icon}</span>
+                      <span style="color: ${source.color}; font-weight: bold; font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.5px;">
+                          ${source.label}
+                      </span>
+                  </div>
+                  <div style="color: #333; margin-left: 28px; line-height: 1.5; word-break: break-word; font-size: 1.05em;">
+                      ${source.meaning}
+                  </div>
+              </div>
+          `;
+      });
+      
+      // Thêm nút hành động
+      html += `<div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 12px;">
+          <button onclick="openNaverDict('${word}')" style="background: #03c75a; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;"> 
+              <span>🇰🇷</span> Tra Naver
+          </button>
+          <button onclick="fetchGoogleTranslate('${word}')" style="background: #4285f4; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;">
+              <span>🌐</span> Dịch lại
+          </button>
+      </div>`;
+      
+      html += `</div>`;
+      container.innerHTML = html;
+  }
 
         function findWordAppearances(word) {
             const result = [];
@@ -1265,17 +1338,10 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 .filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex))
                 .sort((a, b) => (b.isLinked ? 1 : 0) - (a.isLinked ? 1 : 0));
                 if (autoVocabs.length > 0) {
-                    const wordData = autoVocabs[0];
-                    const notebookVocab = getNotebookVocabInfo(wordData.word);
-
-                    // Chỉ hiển thị đúng thời điểm hiện tại (không render toàn bộ savedIndexes)
-                    const singleDisplayData = {
-                        ...wordData,
-                        savedIndexes: [currentSubtitleIndex]
-                    };
-
-                    displayVocabInfo(wordData.word, singleDisplayData, notebookVocab);
-                }
+                      const wordData = autoVocabs[0];
+                      const notebookVocab = getNotebookVocabInfo(wordData.word);
+                      displayVocabInfo(wordData.word, wordData, notebookVocab); // Dòng này quan trọng
+                  }
                 
                 const textToRead = ttsLanguage === "vi-VN" ? nextSubtitle.vietnameseText : nextSubtitle.koreanText;
                 const currentTimeMs = Date.now();
