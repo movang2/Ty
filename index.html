@@ -235,7 +235,7 @@
        }
         /* Kiểu mới cho phần hiển thị từ vựng */
         .vocab-info-item {
-            padding: 12px;
+            padding: 5px;
             margin: 8px 0;
             background-color: #fff;
             border-left: 4px solid #4CAF50;
@@ -290,7 +290,7 @@
     pointer-events: none;
     animation: tooltipFadeIn 0.2s ease;
     border-left: 4px solid #3498db;
-    line-height: 1.5;
+    line-height: 1.3;
 }
 
 .tooltip-box::before {
@@ -352,6 +352,27 @@
     animation: glow 1.5s infinite;
 }
 </style>
+
+<style>
+/* TỰ ĐỘNG THU NHỎ TOÀN BỘ PANEL */
+#vocab-info-display {
+    font-size: 12px !important;
+}
+
+.vocab-info-item {
+    padding: 4px !important;
+}
+
+#vocab-info-display [style*="text-transform: uppercase"] {
+    font-size: 5px !important;
+}
+
+#vocab-info-display button {
+    font-size: 5px !important;
+    padding: 1px 4px !important;
+}
+</style>
+
 </head>
 <body>
 <!-- ===== GIAO DIỆN ĐĂNG NHẬP VÀ ĐỒNG BỘ CỐ ĐỊNH ===== -->
@@ -1207,12 +1228,12 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
       
       // Header với từ và số lượng nguồn
       html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">
-          <span style="font-size: 1.4em; font-weight: bold; color: #2196F3;">${word}</span>
+          <span style="font-size: 10px; font-weight: bold; color: #2196F3;">${word}</span>
           ${sources.length > 1 ? 
-              `<span style="background: #4CAF50; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+              `<span style="background: #4CAF50; color: white; padding: 2px 5px; border-radius: 9px; font-size: 5px; font-weight: bold;">
                   🥇 ${sources.length} nguồn
               </span>` : 
-              `<span style="background: #607d8b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px;">
+              `<span style="background: #607d8b; color: white; padding: 2px 5px; border-radius: 9px; font-size: 5px;">
                   1 nguồn
               </span>`
           }
@@ -1221,17 +1242,17 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
       // Hiển thị từng nguồn
       sources.forEach((source, index) => {
           html += `
-              <div style="margin-bottom: ${index < sources.length - 1 ? '15px' : '0'}; 
+              <div style="margin-bottom: ${index < sources.length - 1 ? '4px' : '0'}; 
                           background: ${source.color}10;
                           border-radius: 8px;
-                          padding: 12px;">
-                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                      <span style="font-size: 1.2em;">${source.icon}</span>
-                      <span style="color: ${source.color}; font-weight: bold; font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.5px;">
+                          padding: 5px;">
+                  <div style="display: flex; align-items: center; gap: 2px; margin-bottom: 2px;">
+                      <span style="font-size: 9px;">${source.icon}</span>
+                      <span style="color: ${source.color}; font-weight: bold; font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px;">
                           ${source.label}
                       </span>
                   </div>
-                  <div style="color: #333; margin-left: 28px; line-height: 1.5; word-break: break-word; font-size: 1.05em;">
+                  <div style="color: #333; margin-left: 13px; line-height: 1.3; word-break: break-word; font-size: 8px;">
                       ${source.meaning}
                   </div>
               </div>
@@ -1240,10 +1261,10 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
       
       // Thêm nút hành động
       html += `<div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 12px;">
-          <button onclick="openNaverDict('${word}')" style="background: #03c75a; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;"> 
+          <button onclick="openNaverDict('${word}')" style="background: #03c75a; color: white; border: none; border-radius: 6px; padding: 3px 5px; cursor: pointer; font-size: 6px; display: flex; align-items: center; gap: 5px;"> 
               <span>🇰🇷</span> Tra Naver
           </button>
-          <button onclick="fetchGoogleTranslate('${word}')" style="background: #4285f4; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;">
+          <button onclick="fetchGoogleTranslate('${word}')" style="background: #4285f4; color: white; border: none; border-radius: 6px; padding: 3px 5px; cursor: pointer; font-size: 6px; display: flex; align-items: center; gap: 5px;">
               <span>🌐</span> Dịch lại
           </button>
       </div>`;
