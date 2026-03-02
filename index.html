@@ -533,7 +533,6 @@ function showSRTPanel() {
         let history = [];
         let currentVideoUrl = "";
         let vocabList = [];
-        let subtitleData = [];
         let instantLookupEnabled = true;
         let naverLookupEnabled = false;
         let ttsVolume = 1.0;
@@ -1125,7 +1124,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
            } else if (instantLookupEnabled) {
                 openNaverDict(word);
                 if (!existingVocab) {
-                    fetchGoogleTranslate(word).catch(console.error);
+                    fetchGoogleTranslate(word);
                }
            } else {
                 // Khi cả hai chế độ đều tắt, vẫn hiển thị thông tin cơ bản
@@ -1242,37 +1241,8 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
            }, 200);
             syncSubtitles();
        }
-        function autoDisplayLinkedVocab(index) {
-              const container = document.getElementById("vocab-info-display");
-              if (!container) return;
 
-              const linked = vocabList.filter(v =>
-                  v.savedIndexes && v.savedIndexes.includes(index) && v.isLinked
-              );
-
-              const google = vocabList.filter(v =>
-                  v.savedIndexes && v.savedIndexes.includes(index) && !v.isLinked
-              );
-
-              if(linked.length === 0 && google.length === 0) return;
-
-              const word = (linked[0] || google[0]).word;
-
-              let html = "<b>" + word + "</b><br>";
-
-              if(linked.length > 0){
-                  html += "<div style='color:#4CAF50;margin-top:5px;'>📘 Linked: "
-                      + linked[0].meaning + "</div>";
-              }
-
-              if(google.length > 0){
-                  html += "<div style='color:#2196F3;margin-top:5px;'>🌐 Google: "
-                      + google[0].meaning + "</div>";
-              }
-
-              container.innerHTML = html;
-          }
-  \n        function syncSubtitles() {
+        function syncSubtitles() {
             if (!youtubePlayer || youtubePlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
                 return;
            }
@@ -1291,7 +1261,21 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 currentSubtitleIndex = nextIndex;
                 updateSubtitleDisplay(currentSubtitleIndex);
                 
-                autoDisplayLinkedVocab(currentSubtitleIndex);
+                const autoVocabs = vocabList
+                .filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex))
+                .sort((a, b) => (b.isLinked ? 1 : 0) - (a.isLinked ? 1 : 0));
+                if (autoVocabs.length > 0) {
+                    const wordData = autoVocabs[0];
+                    const notebookVocab = getNotebookVocabInfo(wordData.word);
+
+                    // Chỉ hiển thị đúng thời điểm hiện tại (không render toàn bộ savedIndexes)
+                    const singleDisplayData = {
+                        ...wordData,
+                        savedIndexes: [currentSubtitleIndex]
+                    };
+
+                    displayVocabInfo(wordData.word, singleDisplayData, notebookVocab);
+                }
                 
                 const textToRead = ttsLanguage === "vi-VN" ? nextSubtitle.vietnameseText : nextSubtitle.koreanText;
                 const currentTimeMs = Date.now();
@@ -1933,7 +1917,67 @@ function showTooltip(word, meaning, source, x, y) {
 }
 
 // Ghi đè hàm lookupWord để sử dụng tooltip
+const originalLookupWord = window.lookupWord;
+window.lookupWord = function(word) {
+    // Luôn thêm từ vào danh sách từ vựng nếu chưa có
+    const existingVocab = vocabList.find(item => item.word === word);
+    if (!existingVocab) {
+        vocabList.push({ word, meaning: "Đang tra cứu..."});
+        saveVocabToHistory();
+        displayVocabList();
+   }
 
+    // Tìm trong NotebookLM
+    const notebookVocab = getNotebookVocabInfo(word);
+    
+    // Kiểm tra chế độ
+    const naverLookupEnabled = document.getElementById('naver-lookup-toggle').checked;
+    
+    if (naverLookupEnabled) {
+        // Nếu bật Naver, mở tab mới
+        openNaverDict(word);
+        if (!existingVocab) {
+            fetchGoogleTranslate(word);
+       }
+   } else {
+        // Nếu tắt Naver, hiển thị tooltip
+        const event = window.event;
+        const mouseX = event ? event.clientX : window.innerWidth / 2;
+        const mouseY = event ? event.clientY : window.innerHeight / 2;
+        
+        if (notebookVocab) {
+            // Có trong NotebookLM
+            showTooltip(word, notebookVocab.meaning, 'notebook', mouseX, mouseY);
+       } else if (existingVocab && existingVocab.meaning && existingVocab.meaning !== "Đang tra cứu...") {
+            // Có trong từ điển đã lưu
+            showTooltip(word, existingVocab.meaning, 'manual', mouseX, mouseY);
+            
+            // Dịch thêm nếu chưa có nghĩa
+            if (!existingVocab.meaning || existingVocab.meaning === "Đang tra cứu...") {
+                fetchGoogleTranslate(word);
+           }
+       } else {
+            // Chưa có nghĩa, hiển thị loading và dịch
+            showTooltip(word, "Đang tra cứu...", '', mouseX, mouseY);
+            
+            // Dịch qua Google
+            fetchGoogleTranslate(word).then(() => {
+                // Cập nhật tooltip sau khi dịch xong
+                const updatedVocab = vocabList.find(item => item.word === word);
+                if (updatedVocab && updatedVocab.meaning && updatedVocab.meaning !== "Đang tra cứu...") {
+                    if (activeTooltip) {
+                        activeTooltip.remove();
+                        activeTooltip = null;
+                   }
+                    showTooltip(word, updatedVocab.meaning, 'google', mouseX, mouseY);
+               }
+           });
+       }
+   }
+    
+    // Vẫn hiển thị thông tin chi tiết ở panel dưới
+    displayVocabInfo(word, existingVocab || vocabList.find(item => item.word === word), notebookVocab);
+};
 
 // Cập nhật hàm fetchGoogleTranslate để trả về Promise
 window.fetchGoogleTranslate = async function(text) {
@@ -2364,7 +2408,25 @@ window.downloadFromCloud = async function() {
     }
 };
 
-
+window.deleteCloudData = async function() {
+    const user = auth.currentUser;
+    if (!user) { alert('Vui lòng đăng nhập!'); return; }
+    if (!confirm('⚠️⚠️⚠️ XÓA TOÀN BỘ dữ liệu trên cloud? KHÔNG THỂ HOÀN TÁC!')) return;
+    try {
+        document.getElementById('syncStatusMain').innerHTML = '⏳ Đang xóa...';
+        await setDoc(doc(db, "users", user.uid), { 
+            localStorageData: {}, 
+            lastSync: new Date().toISOString(),
+            userEmail: user.email
+        });
+        document.getElementById('syncStatusMain').innerHTML = '✅ Đã xóa dữ liệu cloud';
+        alert('🗑️ Đã xóa toàn bộ dữ liệu cloud!');
+        checkCloudData(user);
+    } catch (error) {
+        document.getElementById('syncStatusMain').innerHTML = '❌ Lỗi: ' + error.message;
+        alert('❌ Lỗi xóa: ' + error.message);
+    }
+};
 
 document.getElementById('loginBtnMain').onclick = async () => { 
     try { await signInWithPopup(auth, provider); } 
@@ -2400,57 +2462,34 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // XÓA DỮ LIỆU CLOUD (BỔ SUNG)
+window.deleteCloudData = async function() {
+    const user = auth.currentUser;
+    if (!user) { alert('Vui lòng đăng nhập!'); return; }
 
+    if (!confirm('⚠️⚠️⚠️ XÓA TOÀN BỘ dữ liệu trên cloud? KHÔNG THỂ HOÀN TÁC!')) return;
 
+    try {
+        document.getElementById('syncStatusMain').innerHTML = '⏳ Đang xóa...';
 
-  window.deleteCloudData = async function() {
-      if (!currentUserEmail) {
-          alert('Vui lòng đăng nhập Google trước khi xóa dữ liệu Cloud!');
-          return;
-      }
-      
-      if (!confirm('⚠️ CẢNH BÁO: Hành động này sẽ xóa TOÀN BỘ dữ liệu của bạn trên Cloud.\n\nBạn có chắc chắn muốn tiếp tục không?')) {
-          return;
-      }
+        await setDoc(doc(db, "users", user.uid), { 
+            localStorageData: {}, 
+            lastSync: new Date().toISOString(),
+            userEmail: user.email
+        });
 
-      try {
-          const loadingMsg = document.createElement('div');
-          loadingMsg.id = 'deleting-msg';
-          loadingMsg.style.cssText = 'position:fixed; top:20px; right:20px; background:#f44336; color:white; padding:15px; border-radius:8px; z-index:10000; font-weight:bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2);';
-          loadingMsg.innerHTML = '🗑️ Đang xóa dữ liệu trên Cloud...';
-          document.body.appendChild(loadingMsg);
+        document.getElementById('syncStatusMain').innerHTML = '✅ Đã xóa dữ liệu cloud';
+        alert('🗑️ Đã xóa toàn bộ dữ liệu cloud!');
+        checkCloudData(user);
 
-          const response = await fetch('https://script.google.com/macros/s/AKfycbyQzXF3Z04r43cT-56-Mh7u3l6G-5jH936-R9Z5_00/exec', {
-              method: 'POST',
-              mode: 'no-cors',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  action: 'deleteData',
-                  email: currentUserEmail
-              })
-          });
+    } catch (error) {
+        document.getElementById('syncStatusMain').innerHTML = '❌ Lỗi: ' + error.message;
+        alert('❌ Lỗi xóa: ' + error.message);
+    }
+};
 
-          document.getElementById('deleting-msg')?.remove();
-          
-          document.getElementById('syncStatusMain').innerHTML = '🗑️ Đã xóa dữ liệu trên Cloud';
-          document.getElementById('syncStatusMain').style.background = 'rgba(244, 67, 54, 0.2)';
-          
-          document.getElementById('lastSyncInfo').innerHTML = 'Lần đồng bộ cuối: Chưa có';
-          document.getElementById('dataSizeInfo').innerHTML = 'Dung lượng: 0 KB';
-          
-          alert('✅ Đã xóa toàn bộ dữ liệu trên Cloud thành công!');
-          
-      } catch (error) {
-          document.getElementById('deleting-msg')?.remove();
-          document.getElementById('syncStatusMain').innerHTML = '❌ Lỗi xóa: ' + error.message;
-          alert('❌ Lỗi khi xóa dữ liệu: ' + error.message);
-      }
-  };
-  
 </script>
 
 
 </body>
     </html>
+
