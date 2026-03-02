@@ -1242,7 +1242,40 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             syncSubtitles();
        }
 
-        function syncSubtitles() {
+        
+          function autoDisplayLinkedVocab(index){
+
+              const container = document.getElementById("vocab-info-display");
+
+              const linked = vocabList.filter(v =>
+                  v.savedIndexes && v.savedIndexes.includes(index) && v.isLinked
+              );
+
+              const google = vocabList.filter(v =>
+                  v.savedIndexes && v.savedIndexes.includes(index) && !v.isLinked
+              );
+
+              if(linked.length === 0 && google.length === 0) return;
+
+              const word = (linked[0] || google[0]).word;
+
+              let html = "<b>" + word + "</b><br>";
+
+              // 🥇 Hiển thị Linked nếu có
+              if(linked.length > 0){
+                  html += "<div style='color:#4CAF50;margin-top:5px;'>📘 Linked: "
+                      + linked[0].meaning + "</div>";
+              }
+
+              // 🥈 Hiển thị Google nếu có
+              if(google.length > 0){
+                  html += "<div style='color:#2196F3;margin-top:5px;'>🌐 Google: "
+                      + google[0].meaning + "</div>";
+              }
+
+              container.innerHTML = html;
+          }
+  \n        function syncSubtitles() {
             if (!youtubePlayer || youtubePlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
                 return;
            }
@@ -1261,21 +1294,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 currentSubtitleIndex = nextIndex;
                 updateSubtitleDisplay(currentSubtitleIndex);
                 
-                const autoVocabs = vocabList
-                .filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex))
-                .sort((a, b) => (b.isLinked ? 1 : 0) - (a.isLinked ? 1 : 0));
-                if (autoVocabs.length > 0) {
-                    const wordData = autoVocabs[0];
-                    const notebookVocab = getNotebookVocabInfo(wordData.word);
-
-                    // Chỉ hiển thị đúng thời điểm hiện tại (không render toàn bộ savedIndexes)
-                    const singleDisplayData = {
-                        ...wordData,
-                        savedIndexes: [currentSubtitleIndex]
-                    };
-
-                    displayVocabInfo(wordData.word, singleDisplayData, notebookVocab);
-                }
+                autoDisplayLinkedVocab(currentSubtitleIndex);
                 
                 const textToRead = ttsLanguage === "vi-VN" ? nextSubtitle.vietnameseText : nextSubtitle.koreanText;
                 const currentTimeMs = Date.now();
