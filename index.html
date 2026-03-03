@@ -2409,7 +2409,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signO
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyC3ArgRBdzrj-Njnq6A9KB--9LT45LUNJ8",
+  apiKey: "AIzaSyC3ArgRBdzrj-Njnq6A9KB--9LT45LUNJ8",
   authDomain: "yt-srt-sync.firebaseapp.com",
   projectId: "yt-srt-sync",
   storageBucket: "yt-srt-sync.firebasestorage.app",
@@ -2577,23 +2577,29 @@ window.deleteCloudData = async function() {
 </script>
 
 
+</body>
+    </html>
 
-<!-- ===== JSON STATE + FIREBASE SYNC (AUTO INSERTED) ===== -->
-<div style="margin:15px 0; padding:10px; border:1px solid #ccc;">
-    <h3>💾 Sao lưu & Đồng bộ Trạng thái</h3>
-    <button onclick="exportStateJSON()">💾 Lưu trạng thái .json</button>
-    <button onclick="document.getElementById('jsonImport').click()">📂 Tải trạng thái .json</button>
-    <button onclick="uploadStateToFirebase()">☁️ Upload Firebase</button>
-    <button onclick="downloadStateFromFirebase()">📥 Tải từ Firebase</button>
+<!-- ===== JSON STATE + FIREBASE SYNC (ĐÃ SỬA LỖI) ===== -->
+<div style="margin:20px 0; padding:15px; background:#f0f7ff; border-radius:8px; border:1px solid #2196F3;">
+    <h3 style="margin-top:0; color:#2196F3;">💾 Sao lưu & Đồng bộ Trạng thái</h3>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button onclick="exportStateJSON()" style="padding:8px 15px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">💾 Lưu file .json</button>
+        <button onclick="importStateJSON()" style="padding:8px 15px; background:#FF9800; color:white; border:none; border-radius:4px; cursor:pointer;">📂 Tải file .json</button>
+        <button onclick="uploadStateToFirebase()" id="uploadStateBtn" style="padding:8px 15px; background:#2196F3; color:white; border:none; border-radius:4px; cursor:pointer;" disabled>☁️ Upload Firebase</button>
+        <button onclick="downloadStateFromFirebase()" id="downloadStateBtn" style="padding:8px 15px; background:#9C27B0; color:white; border:none; border-radius:4px; cursor:pointer;" disabled>📥 Tải từ Firebase</button>
+    </div>
+    <div id="firebaseStateStatus" style="margin-top:10px; font-size:13px; color:#666; padding:5px; background:#fff; border-radius:4px;">
+        🔒 Cần đăng nhập để dùng Firebase
+    </div>
     <input type="file" id="jsonImport" accept=".json" style="display:none">
 </div>
 
-<!-- Firebase v8 Compat -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
 <script>
-// ⚠️ THAY THÔNG TIN FIREBASE CỦA BẠN Ở ĐÂY
 var firebaseConfig = {
     apiKey: "AIzaSyC3ArgRBdzrj-Njnq6A9KB--9LT45LUNJ8",
     authDomain: "yt-srt-sync.firebaseapp.com",
@@ -2605,65 +2611,35 @@ if (!firebase.apps.length) {
 }
 
 var db = firebase.firestore();
+var auth = firebase.auth();
+var provider = new firebase.auth.GoogleAuthProvider();
 
-function exportStateJSON(){
-    const state = {
-        subtitleData: typeof subtitleData !== "undefined" ? subtitleData : [],
-        vocabList: typeof vocabList !== "undefined" ? vocabList : [],
-        history: typeof history !== "undefined" ? history : [],
-        favoriteSubtitles: typeof currentVideoFavorites !== "undefined" ? currentVideoFavorites : []
-    };
-    const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "state_backup.json";
-    a.click();
-}
-
-document.getElementById("jsonImport").addEventListener("change", function(e){
-    const reader = new FileReader();
-    reader.onload = function(ev){
-        const data = JSON.parse(ev.target.result);
-        if(data.subtitleData) subtitleData = data.subtitleData;
-        if(data.vocabList) vocabList = data.vocabList;
-        if(data.history) history = data.history;
-        if(data.favoriteSubtitles) currentVideoFavorites = data.favoriteSubtitles;
-        if(typeof displaySubtitleList === "function") displaySubtitleList();
-        if(typeof displayVocabList === "function") displayVocabList();
-        if(typeof displayFavorites === "function") displayFavorites();
-        alert("✅ Đã khôi phục trạng thái!");
+auth.onAuthStateChanged(function(user) {
+    const uploadBtn = document.getElementById('uploadStateBtn');
+    const downloadBtn = document.getElementById('downloadStateBtn');
+    const statusEl = document.getElementById('firebaseStateStatus');
+    
+    if (user) {
+        uploadBtn.disabled = false;
+        downloadBtn.disabled = false;
+        statusEl.innerHTML = `✅ Đã đăng nhập: ${user.email} | <button onclick="logoutFromState()" style="background:none;border:none;color:#f44336;text-decoration:underline;cursor:pointer;">Đăng xuất</button>`;
+    } else {
+        uploadBtn.disabled = true;
+        downloadBtn.disabled = true;
+        statusEl.innerHTML = `🔒 <button onclick="loginToState()" style="background:none;border:none;color:#2196F3;text-decoration:underline;cursor:pointer;">Đăng nhập Google</button> để dùng Firebase`;
     }
-    reader.readAsText(e.target.files[0]);
 });
 
-async function uploadStateToFirebase(){
-    const state = {
-        subtitleData,
-        vocabList,
-        history,
-        favoriteSubtitles: currentVideoFavorites
-    };
-    await db.collection("states").doc("mainState").set(state);
-    alert("☁️ Đã upload lên Firebase!");
+function loginToState() {
+    auth.signInWithPopup(provider).catch(function(error) {
+        alert("Lỗi đăng nhập: " + error.message);
+    });
 }
 
-async function downloadStateFromFirebase(){
-    const doc = await db.collection("states").doc("mainState").get();
-    if(doc.exists){
-        const data = doc.data();
-        subtitleData = data.subtitleData || [];
-        vocabList = data.vocabList || [];
-        history = data.history || [];
-        currentVideoFavorites = data.favoriteSubtitles || [];
-        if(typeof displaySubtitleList === "function") displaySubtitleList();
-        if(typeof displayVocabList === "function") displayVocabList();
-        if(typeof displayFavorites === "function") displayFavorites();
-        alert("📥 Đã tải từ Firebase!");
-    }else{
-        alert("⚠️ Chưa có dữ liệu trên Firebase.");
-    }
+function logoutFromState() {
+    auth.signOut().catch(function(error) {
+        alert("Lỗi đăng xuất: " + error.message);
+    });
 }
 </script>
 
-</body>
-    </html>
