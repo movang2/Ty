@@ -439,6 +439,70 @@
                 <option value="ko-KR">Tiếng Hàn</option>
             </select>
         </div>
+
+        <!-- CHỌN GIỌNG ĐỌC TTS -->
+        <div id="tts-voice-panel" style="margin-top:12px; border:1px solid #b0c4de; border-radius:8px; padding:12px; background:#f0f6ff;">
+            <div style="font-weight:bold; margin-bottom:8px; color:#1a4a8a;">🎙️ Chọn nguồn & giọng đọc TTS</div>
+
+            <!-- CHỌN NGUỒN TTS -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px; padding:8px; background:#e3f2fd; border-radius:6px;">
+                <label style="font-weight:bold; min-width:90px; text-align:left;">🔌 Nguồn TTS:</label>
+                <label style="cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="tts-engine" value="browser" checked onchange="switchTTSEngine('browser')">
+                    🖥️ Trình duyệt (Web Speech)
+                </label>
+                <label style="cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="tts-engine" value="google" onchange="switchTTSEngine('google')">
+                    🌐 Google Translate TTS <span style="font-size:11px; color:#388E3C; font-weight:bold;">(Tự nhiên hơn)</span>
+                </label>
+                <span id="tts-engine-status" style="font-size:12px; color:#666; margin-left:auto;"></span>
+            </div>
+
+            <!-- PANEL TRÌNH DUYỆT -->
+            <div id="browser-tts-panel">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                    <label style="min-width:110px; text-align:left;">🇻🇳 Giọng Tiếng Việt:</label>
+                    <select id="vi-voice-select" style="flex:1; min-width:180px; padding:5px; border-radius:4px; border:1px solid #90b0d0;">
+                        <option value="">-- Đang tải giọng... --</option>
+                    </select>
+                    <button onclick="previewVoice('vi-VN')" style="padding:5px 12px; background:#1565C0; color:white; border:none; border-radius:4px; cursor:pointer; white-space:nowrap;">▶ Thử nghe</button>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                    <label style="min-width:110px; text-align:left;">🇰🇷 Giọng Tiếng Hàn:</label>
+                    <select id="ko-voice-select" style="flex:1; min-width:180px; padding:5px; border-radius:4px; border:1px solid #90b0d0;">
+                        <option value="">-- Đang tải giọng... --</option>
+                    </select>
+                    <button onclick="previewVoice('ko-KR')" style="padding:5px 12px; background:#c62828; color:white; border:none; border-radius:4px; cursor:pointer; white-space:nowrap;">▶ Thử nghe</button>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <label style="min-width:110px; text-align:left;">🎵 Cao độ giọng:</label>
+                    <input type="range" id="tts-pitch" min="0.5" max="2" step="0.05" value="1" oninput="updateTTSPitch(this.value)" style="flex:1;">
+                    <span id="pitch-value" style="min-width:30px; text-align:center;">1.0</span>
+                    <button onclick="populateVoiceLists()" style="padding:5px 10px; background:#555; color:white; border:none; border-radius:4px; cursor:pointer;">🔄 Tải lại giọng</button>
+                </div>
+                <div style="margin-top:6px; font-size:12px; color:#666; text-align:left;">
+                    💡 Giọng ⭐ là giọng neural/nâng cao (tự nhiên nhất). Giọng 🌐 (Online) cần kết nối internet.
+                </div>
+            </div>
+
+            <!-- PANEL GOOGLE TTS -->
+            <div id="google-tts-panel" style="display:none;">
+                <div style="padding:8px; background:#e8f5e9; border-radius:6px; margin-bottom:8px;">
+                    <div style="font-size:13px; color:#1b5e20; margin-bottom:6px;">
+                        ✅ <b>Google Translate TTS</b> — Giọng đọc tự nhiên, miễn phí, không cần API key.<br>
+                        Cần kết nối internet. Giới hạn ~200 ký tự mỗi lần đọc.
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button onclick="previewGoogleTTS('vi')" style="padding:5px 14px; background:#2E7D32; color:white; border:none; border-radius:4px; cursor:pointer;">▶ Thử tiếng Việt</button>
+                        <button onclick="previewGoogleTTS('ko')" style="padding:5px 14px; background:#b71c1c; color:white; border:none; border-radius:4px; cursor:pointer;">▶ Thử tiếng Hàn</button>
+                        <span id="google-tts-loading" style="font-size:12px; color:#555; align-self:center;"></span>
+                    </div>
+                </div>
+                <div style="font-size:12px; color:#888; text-align:left;">
+                    ⚠️ Nếu bị chặn (CORS), hãy cài extension <b>"Allow CORS"</b> trên Chrome, hoặc dùng chế độ Trình duyệt ở trên.
+                </div>
+            </div>
+        </div>
         <div style="margin-top:10px; display: flex; align-items: center; justify-content: center; gap: 5px;">
             <label for="subtitle-offset">Lệch thời gian phụ đề (giây): </label>
             <button onclick="toggleNegativeOffset()">-</button>
@@ -573,6 +637,254 @@ function showSRTPanel() {
         let isVocabTTSPaused = false;
         let pausedVocabIndex = -1;
         let vocabDisplayMode = false;
+        let selectedViVoice = null;
+        let selectedKoVoice = null;
+        let ttsPitch = 1.0;
+        let ttsEngine = 'browser';
+        let googleTTSAudio = null;
+        let googleTTSQueue = [];
+        let googleTTSPlaying = false;
+
+        // ===== GOOGLE TRANSLATE TTS =====
+
+        function switchTTSEngine(engine) {
+            ttsEngine = engine;
+            localStorage.setItem('ttsEngine', engine);
+            const browserPanel = document.getElementById('browser-tts-panel');
+            const googlePanel = document.getElementById('google-tts-panel');
+            const status = document.getElementById('tts-engine-status');
+            if (engine === 'google') {
+                browserPanel.style.display = 'none';
+                googlePanel.style.display = 'block';
+                status.textContent = '✅ Đang dùng Google TTS';
+                status.style.color = '#2E7D32';
+                if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+            } else {
+                browserPanel.style.display = 'block';
+                googlePanel.style.display = 'none';
+                status.textContent = '✅ Đang dùng Web Speech';
+                status.style.color = '#1a4a8a';
+                stopGoogleTTS();
+            }
+        }
+
+        function getGoogleTTSUrl(text, lang) {
+            const encodedText = encodeURIComponent(text.substring(0, 200));
+            return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=${lang}&client=tw-ob`;
+        }
+
+        function playGoogleTTS(text, lang, callback) {
+            if (!text || !text.trim()) { callback && callback(); return; }
+            const chunks = splitTextToChunks(text, 180);
+            playGoogleTTSChunks(chunks, lang, 0, callback);
+        }
+
+        function splitTextToChunks(text, maxLen) {
+            if (text.length <= maxLen) return [text];
+            const chunks = [];
+            let remaining = text;
+            while (remaining.length > 0) {
+                if (remaining.length <= maxLen) {
+                    chunks.push(remaining);
+                    break;
+                }
+                let cutAt = maxLen;
+                const space = remaining.lastIndexOf(' ', maxLen);
+                const comma = remaining.lastIndexOf(',', maxLen);
+                const dot = remaining.lastIndexOf('.', maxLen);
+                const best = Math.max(space, comma, dot);
+                if (best > maxLen * 0.5) cutAt = best + 1;
+                chunks.push(remaining.substring(0, cutAt).trim());
+                remaining = remaining.substring(cutAt).trim();
+            }
+            return chunks;
+        }
+
+        function playGoogleTTSChunks(chunks, lang, index, callback) {
+            if (index >= chunks.length) { callback && callback(); return; }
+            const audio = new Audio();
+            googleTTSAudio = audio;
+            audio.src = getGoogleTTSUrl(chunks[index], lang);
+            audio.volume = ttsVolume;
+            audio.playbackRate = Math.min(Math.max(ttsSpeed * 0.85, 0.5), 2.0);
+            audio.onended = () => {
+                playGoogleTTSChunks(chunks, lang, index + 1, callback);
+            };
+            audio.onerror = () => {
+                console.warn('Google TTS lỗi chunk', index);
+                callback && callback();
+            };
+            audio.play().catch(e => {
+                console.warn('Google TTS play lỗi:', e);
+                callback && callback();
+            });
+        }
+
+        function stopGoogleTTS() {
+            if (googleTTSAudio) {
+                googleTTSAudio.pause();
+                googleTTSAudio.src = '';
+                googleTTSAudio = null;
+            }
+        }
+
+        function previewGoogleTTS(lang) {
+            stopGoogleTTS();
+            const loadEl = document.getElementById('google-tts-loading');
+            if (loadEl) loadEl.textContent = '⏳ Đang tải...';
+            const text = lang === 'vi'
+                ? 'Xin chào! Đây là giọng đọc Google. Nghe có tự nhiên không?'
+                : '안녕하세요! 이것은 구글 번역 음성입니다. 자연스럽게 들려요?';
+            playGoogleTTS(text, lang, () => {
+                if (loadEl) loadEl.textContent = '';
+            });
+        }
+
+        function getLangCodeForGoogle(lang) {
+            if (lang === 'vi-VN' || lang === 'vi') return 'vi';
+            if (lang === 'ko-KR' || lang === 'ko') return 'ko';
+            return lang.split('-')[0];
+        }
+
+        // ===== VOICE SELECTION FUNCTIONS =====
+
+        function getVoiceQualityLabel(voice) {
+            const name = voice.name.toLowerCase();
+            const isOnline = !voice.localService;
+            let label = voice.name;
+            if (name.includes('neural') || name.includes('wavenet') || name.includes('natural') ||
+                name.includes('premium') || name.includes('enhanced') || name.includes('hq') ||
+                name.includes('studio')) {
+                label = '⭐ ' + voice.name;
+            } else if (isOnline) {
+                label = '🌐 ' + voice.name;
+            }
+            if (isOnline) label += ' (Online)';
+            return label;
+        }
+
+        function populateVoiceLists() {
+            const allVoices = speechSynthesis.getVoices();
+            if (!allVoices || allVoices.length === 0) {
+                setTimeout(populateVoiceLists, 500);
+                return;
+            }
+
+            const viSelect = document.getElementById('vi-voice-select');
+            const koSelect = document.getElementById('ko-voice-select');
+            if (!viSelect || !koSelect) return;
+
+            const viVoices = allVoices.filter(v => v.lang.startsWith('vi'));
+            const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+
+            viSelect.innerHTML = '';
+            if (viVoices.length === 0) {
+                viSelect.innerHTML = '<option value="">-- Không có giọng Tiếng Việt --</option>';
+            } else {
+                viVoices.sort((a, b) => {
+                    const aName = a.name.toLowerCase();
+                    const bName = b.name.toLowerCase();
+                    const aQ = (aName.includes('neural') || aName.includes('wavenet') || aName.includes('premium') || aName.includes('enhanced')) ? 0 : (!a.localService ? 1 : 2);
+                    const bQ = (bName.includes('neural') || bName.includes('wavenet') || bName.includes('premium') || bName.includes('enhanced')) ? 0 : (!b.localService ? 1 : 2);
+                    return aQ - bQ;
+                });
+                viVoices.forEach((v, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = v.name;
+                    opt.textContent = getVoiceQualityLabel(v);
+                    viSelect.appendChild(opt);
+                });
+                const savedVi = localStorage.getItem('selectedViVoice');
+                if (savedVi && viVoices.find(v => v.name === savedVi)) {
+                    viSelect.value = savedVi;
+                }
+                selectedViVoice = viVoices.find(v => v.name === viSelect.value) || viVoices[0];
+            }
+
+            koSelect.innerHTML = '';
+            if (koVoices.length === 0) {
+                koSelect.innerHTML = '<option value="">-- Không có giọng Tiếng Hàn --</option>';
+            } else {
+                koVoices.sort((a, b) => {
+                    const aName = a.name.toLowerCase();
+                    const bName = b.name.toLowerCase();
+                    const aQ = (aName.includes('neural') || aName.includes('wavenet') || aName.includes('premium') || aName.includes('enhanced')) ? 0 : (!a.localService ? 1 : 2);
+                    const bQ = (bName.includes('neural') || bName.includes('wavenet') || bName.includes('premium') || bName.includes('enhanced')) ? 0 : (!b.localService ? 1 : 2);
+                    return aQ - bQ;
+                });
+                koVoices.forEach((v, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = v.name;
+                    opt.textContent = getVoiceQualityLabel(v);
+                    koSelect.appendChild(opt);
+                });
+                const savedKo = localStorage.getItem('selectedKoVoice');
+                if (savedKo && koVoices.find(v => v.name === savedKo)) {
+                    koSelect.value = savedKo;
+                }
+                selectedKoVoice = koVoices.find(v => v.name === koSelect.value) || koVoices[0];
+            }
+
+            viSelect.onchange = () => {
+                const allV = speechSynthesis.getVoices();
+                selectedViVoice = allV.find(v => v.name === viSelect.value) || null;
+                localStorage.setItem('selectedViVoice', viSelect.value);
+            };
+            koSelect.onchange = () => {
+                const allV = speechSynthesis.getVoices();
+                selectedKoVoice = allV.find(v => v.name === koSelect.value) || null;
+                localStorage.setItem('selectedKoVoice', koSelect.value);
+            };
+        }
+
+        function previewVoice(lang) {
+            speechSynthesis.cancel();
+            const allVoices = speechSynthesis.getVoices();
+            let voice = null;
+            let text = '';
+            if (lang === 'vi-VN') {
+                const sel = document.getElementById('vi-voice-select');
+                voice = sel ? allVoices.find(v => v.name === sel.value) : null;
+                text = 'Xin chào, đây là giọng đọc tiếng Việt. Chúc bạn học tốt!';
+            } else {
+                const sel = document.getElementById('ko-voice-select');
+                voice = sel ? allVoices.find(v => v.name === sel.value) : null;
+                text = '안녕하세요. 이것은 한국어 음성 테스트입니다. 잘 들려요?';
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.rate = ttsSpeed;
+            utterance.volume = ttsVolume;
+            utterance.pitch = ttsPitch;
+            if (voice) utterance.voice = voice;
+            speechSynthesis.speak(utterance);
+        }
+
+        function updateTTSPitch(value) {
+            ttsPitch = parseFloat(value);
+            document.getElementById('pitch-value').textContent = ttsPitch.toFixed(2);
+            localStorage.setItem('ttsPitch', ttsPitch);
+        }
+
+        function getSelectedVoice(lang) {
+            const allVoices = speechSynthesis.getVoices();
+            if (lang === 'vi-VN' || lang.startsWith('vi')) {
+                const sel = document.getElementById('vi-voice-select');
+                if (sel && sel.value) {
+                    const found = allVoices.find(v => v.name === sel.value);
+                    if (found) return found;
+                }
+                return selectedViVoice || allVoices.find(v => v.lang.startsWith('vi')) || null;
+            } else if (lang === 'ko-KR' || lang.startsWith('ko')) {
+                const sel = document.getElementById('ko-voice-select');
+                if (sel && sel.value) {
+                    const found = allVoices.find(v => v.name === sel.value);
+                    if (found) return found;
+                }
+                return selectedKoVoice || allVoices.find(v => v.lang.startsWith('ko')) || null;
+            }
+            return allVoices.find(v => v.lang === lang) || null;
+        }
 
         function findBestSubtitleIndex(vocabWord) {
             const cleanVocab = vocabWord.replace(/[^\p{Script=Hangul}]+/gu, "").trim().substring(0, 2);
@@ -1426,10 +1738,15 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
        }
 
         function readText(text, callback) {
-            if (!text) {
-                callback?.();
+            if (!text) { callback?.(); return; }
+
+            if (ttsEngine === 'google') {
+                stopGoogleTTS();
+                const lang = getLangCodeForGoogle(ttsLanguage);
+                playGoogleTTS(text, lang, callback);
                 return;
-           }
+            }
+
             try {
                 if (typeof speechSynthesis === 'undefined' || !speechSynthesis) {
                     console.error("Trình duyệt không hỗ trợ Web Speech API");
@@ -1441,22 +1758,17 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 utterance.lang = ttsLanguage;
                 utterance.rate = ttsSpeed;
                 utterance.volume = ttsVolume;
-                const voices = speechSynthesis.getVoices();
-                if (!voices || voices.length === 0) {
-                    console.error("Không tìm thấy giọng đọc nào");
-                    alert("Không tìm thấy giọng đọc phù hợp. Vui lòng kiểm tra cài đặt ngôn ngữ trên thiết bị.");
-                    callback?.();
-                    return;
-               }
-                const preferredVoice = voices.find(voice => voice.lang === ttsLanguage);
-                if (preferredVoice) {
-                    utterance.voice = preferredVoice;
+                utterance.pitch = ttsPitch;
+                const selectedVoice = getSelectedVoice(ttsLanguage);
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
                } else {
-                    console.warn("Không tìm thấy giọng đọc phù hợp với ngôn ngữ", ttsLanguage);
+                    const voices = speechSynthesis.getVoices();
+                    const fallback = voices.find(v => v.lang === ttsLanguage) ||
+                                    voices.find(v => v.lang.startsWith(ttsLanguage.split('-')[0]));
+                    if (fallback) utterance.voice = fallback;
                }
-                utterance.onend = () => {
-                    callback?.();
-               };
+                utterance.onend = () => { callback?.(); };
                 utterance.onerror = (event) => {
                     console.error("Lỗi TTS:", event);
                     callback?.();
@@ -1476,13 +1788,30 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             const cleanedText = removeBracketsContent(text);
             const parts = cleanedText.split("-");
             const koreanPart = parts[0] ? parts[0].trim() : "";
-            const vietnamesePart = parts[1] ? parts[1].trim() : "";
+            const vietnamesePart = parts.slice(1).join("-").trim();
+
+            if (ttsEngine === 'google') {
+                if (koreanPart) {
+                    stopGoogleTTS();
+                    playGoogleTTS(koreanPart, 'ko', () => {
+                        if (vietnamesePart) {
+                            playGoogleTTS(vietnamesePart, 'vi', callback);
+                        } else if (callback) callback();
+                    });
+                } else if (vietnamesePart) {
+                    playGoogleTTS(vietnamesePart, 'vi', callback);
+                } else if (callback) callback();
+                return;
+            }
 
             if (koreanPart) {
                 const koUtterance = new SpeechSynthesisUtterance(koreanPart);
                 koUtterance.lang = "ko-KR";
                 koUtterance.rate = ttsSpeed;
                 koUtterance.volume = ttsVolume;
+                koUtterance.pitch = ttsPitch;
+                const koVoice = getSelectedVoice('ko-KR');
+                if (koVoice) koUtterance.voice = koVoice;
 
                 koUtterance.onend = () => {
                     if (vietnamesePart) {
@@ -1490,6 +1819,9 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                         viUtterance.lang = "vi-VN";
                         viUtterance.rate = ttsSpeed;
                         viUtterance.volume = ttsVolume;
+                        viUtterance.pitch = ttsPitch;
+                        const viVoice = getSelectedVoice('vi-VN');
+                        if (viVoice) viUtterance.voice = viVoice;
                         viUtterance.onend = callback;
                         speechSynthesis.speak(viUtterance);
                    } else if (callback) {
@@ -1502,6 +1834,9 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 viUtterance.lang = "vi-VN";
                 viUtterance.rate = ttsSpeed;
                 viUtterance.volume = ttsVolume;
+                viUtterance.pitch = ttsPitch;
+                const viVoice = getSelectedVoice('vi-VN');
+                if (viVoice) viUtterance.voice = viVoice;
                 viUtterance.onend = callback;
                 speechSynthesis.speak(viUtterance);
            } else if (callback) {
@@ -1514,6 +1849,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 speechSynthesis.cancel();
                 isSpeaking = false;
            }
+            stopGoogleTTS();
             if (syncInterval) {
                 clearInterval(syncInterval);
                 syncInterval = null;
@@ -1890,13 +2226,19 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             isVocabTTSPaused = false;
             vocabTTSIndex = -1;
             pausedVocabIndex = -1;
-            speechSynthesis.cancel();
+            if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+            stopGoogleTTS();
             clearTimeout(vocabTTSTimeout);
             highlightCurrentVocabItem(-1);
        }
 
         function testTTS() {
-            readText("Kiểm tra giọng đọc", () => {});
+            const lang = document.getElementById('tts-language').value;
+            if (lang === 'ko-KR') {
+                readText("안녕하세요, 잘 들려요?", () => {});
+            } else {
+                readText("Xin chào, kiểm tra giọng đọc tiếng Việt!", () => {});
+            }
        }
 
         function loadInitialState() {
@@ -1905,6 +2247,7 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 ttsSpeed = parseFloat(localStorage.getItem("ttsSpeed")) || 1.5;
                 ttsLanguage = localStorage.getItem("ttsLanguage") || "vi-VN";
                 ttsVolume = parseFloat(localStorage.getItem("ttsVolume")) || 1.0;
+                ttsPitch = parseFloat(localStorage.getItem("ttsPitch")) || 1.0;
                 instantLookupEnabled = localStorage.getItem("instantLookup") !== "0";
                 naverLookupEnabled = localStorage.getItem("naverLookup") === "1";
                 subtitleOffset = parseFloat(localStorage.getItem("subtitleOffset")) || 0;
@@ -1921,8 +2264,30 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 document.getElementById("subtitle-offset").value = subtitleOffset;
                 document.getElementById("offset-value").textContent = subtitleOffset.toFixed(1);
                 document.getElementById("vocab-display-mode").checked = vocabDisplayMode;
+                const pitchSlider = document.getElementById("tts-pitch");
+                if (pitchSlider) {
+                    pitchSlider.value = ttsPitch;
+                    document.getElementById("pitch-value").textContent = ttsPitch.toFixed(2);
+                }
 
                 displayHistory();
+
+                // Khôi phục nguồn TTS đã chọn
+                const savedEngine = localStorage.getItem('ttsEngine') || 'browser';
+                ttsEngine = savedEngine;
+                const engineRadio = document.querySelector(`input[name="tts-engine"][value="${savedEngine}"]`);
+                if (engineRadio) engineRadio.checked = true;
+                switchTTSEngine(savedEngine);
+
+                // Tải danh sách giọng sau khi trang sẵn sàng
+                if (typeof speechSynthesis !== 'undefined') {
+                    if (speechSynthesis.getVoices().length > 0) {
+                        populateVoiceLists();
+                    }
+                    speechSynthesis.onvoiceschanged = () => {
+                        populateVoiceLists();
+                    };
+                }
            } catch (e) {
                 console.error("Lỗi khi tải trạng thái:", e);
            }
@@ -2579,67 +2944,3 @@ window.deleteCloudData = async function() {
 
 </body>
     </html>
-
-<!-- ===== JSON STATE + FIREBASE SYNC (ĐÃ SỬA LỖI) ===== -->
-<div style="margin:20px 0; padding:15px; background:#f0f7ff; border-radius:8px; border:1px solid #2196F3;">
-    <h3 style="margin-top:0; color:#2196F3;">💾 Sao lưu & Đồng bộ Trạng thái</h3>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button onclick="exportStateJSON()" style="padding:8px 15px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">💾 Lưu file .json</button>
-        <button onclick="importStateJSON()" style="padding:8px 15px; background:#FF9800; color:white; border:none; border-radius:4px; cursor:pointer;">📂 Tải file .json</button>
-        <button onclick="uploadStateToFirebase()" id="uploadStateBtn" style="padding:8px 15px; background:#2196F3; color:white; border:none; border-radius:4px; cursor:pointer;" disabled>☁️ Upload Firebase</button>
-        <button onclick="downloadStateFromFirebase()" id="downloadStateBtn" style="padding:8px 15px; background:#9C27B0; color:white; border:none; border-radius:4px; cursor:pointer;" disabled>📥 Tải từ Firebase</button>
-    </div>
-    <div id="firebaseStateStatus" style="margin-top:10px; font-size:13px; color:#666; padding:5px; background:#fff; border-radius:4px;">
-        🔒 Cần đăng nhập để dùng Firebase
-    </div>
-    <input type="file" id="jsonImport" accept=".json" style="display:none">
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-
-<script>
-var firebaseConfig = {
-    apiKey: "AIzaSyC3ArgRBdzrj-Njnq6A9KB--9LT45LUNJ8",
-    authDomain: "yt-srt-sync.firebaseapp.com",
-    projectId: "yt-srt-sync"
-};
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-var db = firebase.firestore();
-var auth = firebase.auth();
-var provider = new firebase.auth.GoogleAuthProvider();
-
-auth.onAuthStateChanged(function(user) {
-    const uploadBtn = document.getElementById('uploadStateBtn');
-    const downloadBtn = document.getElementById('downloadStateBtn');
-    const statusEl = document.getElementById('firebaseStateStatus');
-    
-    if (user) {
-        uploadBtn.disabled = false;
-        downloadBtn.disabled = false;
-        statusEl.innerHTML = `✅ Đã đăng nhập: ${user.email} | <button onclick="logoutFromState()" style="background:none;border:none;color:#f44336;text-decoration:underline;cursor:pointer;">Đăng xuất</button>`;
-    } else {
-        uploadBtn.disabled = true;
-        downloadBtn.disabled = true;
-        statusEl.innerHTML = `🔒 <button onclick="loginToState()" style="background:none;border:none;color:#2196F3;text-decoration:underline;cursor:pointer;">Đăng nhập Google</button> để dùng Firebase`;
-    }
-});
-
-function loginToState() {
-    auth.signInWithPopup(provider).catch(function(error) {
-        alert("Lỗi đăng nhập: " + error.message);
-    });
-}
-
-function logoutFromState() {
-    auth.signOut().catch(function(error) {
-        alert("Lỗi đăng xuất: " + error.message);
-    });
-}
-</script>
-
