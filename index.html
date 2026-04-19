@@ -235,7 +235,7 @@
        }
         /* Kiểu mới cho phần hiển thị từ vựng */
         .vocab-info-item {
-            padding: 5px;
+            padding: 12px;
             margin: 8px 0;
             background-color: #fff;
             border-left: 4px solid #4CAF50;
@@ -290,7 +290,7 @@
     pointer-events: none;
     animation: tooltipFadeIn 0.2s ease;
     border-left: 4px solid #3498db;
-    line-height: 1.3;
+    line-height: 1.5;
 }
 
 .tooltip-box::before {
@@ -341,69 +341,9 @@
         transform: translateY(0);
    }
 }
-    
-@keyframes glow {
-    0% { box-shadow: 0 0 5px #ffeb3b; }
-    50% { box-shadow: 0 0 15px #ff9800; }
-    100% { box-shadow: 0 0 5px #ffeb3b; }
-}
-
-.korean-word.learned {
-    animation: glow 1.5s infinite;
-}
-</style>
-
-<style>
-/* TỰ ĐỘNG THU NHỎ TOÀN BỘ PANEL */
-#vocab-info-display {
-    font-size: 12px !important;
-}
-
-.vocab-info-item {
-    padding: 4px !important;
-}
-
-#vocab-info-display [style*="text-transform: uppercase"] {
-    font-size: 5px !important;
-}
-
-#vocab-info-display button {
-    font-size: 5px !important;
-    padding: 1px 4px !important;
-}
-</style>
-
+    </style>
 </head>
 <body>
-<!-- ===== GIAO DIỆN ĐĂNG NHẬP VÀ ĐỒNG BỘ CỐ ĐỊNH ===== -->
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div id="userInfo" style="display: flex; align-items: center; gap: 10px;">
-                <img id="userAvatar" src="" style="width: 40px; height: 40px; border-radius: 50%; display: none;">
-                <span id="userEmailDisplay" style="font-weight: bold;"></span>
-            </div>
-            <button id="loginBtnMain" style="padding: 8px 20px; background: white; color: #667eea; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">🔐 Đăng nhập Google</button>
-            <button id="logoutBtnMain" style="padding: 8px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none;">🚪 Đăng xuất</button>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <button id="uploadBtn" onclick="uploadToCloud()" style="padding: 8px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" disabled>📤 Upload lên Cloud</button>
-            <button id="downloadBtn" onclick="downloadFromCloud()" style="padding: 8px 20px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" disabled>📥 Tải từ Cloud</button>
-            <button id="deleteCloudBtn" onclick="deleteCloudData()" style="padding: 8px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" disabled>🗑️ Xóa dữ liệu Cloud</button>
-        </div>
-    </div>
-
-    <div id="syncStatusMain" style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px; font-size: 14px; text-align: center;">
-        ⚡ Chưa đăng nhập
-    </div>
-
-    <div id="cloudInfo" style="margin-top: 8px; font-size: 12px; opacity: 0.8; display: flex; justify-content: space-between;">
-        <span id="lastSyncInfo">Lần đồng bộ cuối: Chưa có</span>
-        <span id="dataSizeInfo">Dung lượng: 0 KB</span>
-    </div>
-</div>
-
     <h1>Video YouTube với Phụ đề, TTS và Từ vựng (Hoàn hảo)</h1>
     <div class="container">
         <input type="text" id="video-url" placeholder="Nhập link YouTube (ví dụ: https://www.youtube.com/watch?v=dQw4w9WgXcQ)">
@@ -501,6 +441,24 @@
                         <button onclick="removeCharacters()">Xóa ký tự</button>
                     </div>
                     <button onclick="linkVocabToSubtitles()">Liên kết từ vựng với phụ đề</button>
+
+                    <div style="margin-top: 15px; border: 1px solid #4CAF50; border-radius: 8px; padding: 10px; background: #f9fff9;">
+                        <strong style="color: #2e7d32;">⚙️ Chỉnh sửa SRT trực tiếp</strong>
+                        <div style="margin-top: 8px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                                <label style="white-space:nowrap; font-size:14px;">Số dòng muốn gộp:</label>
+                                <input type="number" id="merge-lines-count" value="2" min="2" max="20" style="width:70px; font-size:16px; padding:6px 8px; border:2px solid #2196F3; border-radius:6px; text-align:center;">
+                            </div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                <button onclick="mergeSubtitles()" style="background-color:#2196F3; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">Gộp dòng</button>
+                                <button onclick="downloadEditedSRT()" style="background-color:#4CAF50; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">Tải SRT đã sửa</button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px;">
+                            <input type="text" id="chars-remove-srt" placeholder="Ký tự cần xóa trong SRT (vd: ♪ >)" style="width:100%; box-sizing:border-box; font-size:18px; padding:10px 12px; border:2px solid #ff9800; border-radius:6px; color:#222; background:#fff; letter-spacing:2px;">
+                            <button onclick="removeCharsFromSRT()" style="margin-top:6px; width:100%; background-color:#ff9800; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:14px;">Xóa trong SRT</button>
+                        </div>
+                    </div>
                     <script>
 
 // ===== AUTO SHOW SRT PANEL =====
@@ -607,25 +565,6 @@ function showSRTPanel() {
             container.innerHTML = "";
 
             vocabArray.forEach(word => {
-                const matchIndex = findBestSubtitleIndex(word.korean);  
-
-                if (matchIndex !== -1) {  
-                    let existing = vocabList.find(v => v.word === word.korean);  
-
-                    if (!existing) {  
-                        vocabList.push({  
-                            word: word.korean,  
-                            meaning: word.meaning,  
-                            savedIndexes: [matchIndex],  
-                            isLinked: true  
-                        });  
-                    } else {  
-                        existing.meaning = word.meaning;  
-                        existing.savedIndexes = [matchIndex];  
-                        existing.isLinked = true;  
-                    }  
-                }
-
                 const div = document.createElement("div");
                 div.textContent = `${word.korean} ${word.meaning ? `- ${word.meaning}` : ""}`;
                 div.className = "clickable-vocab";
@@ -1180,98 +1119,25 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
 }
 
         function displayVocabInfo(word, existingVocab, notebookVocab) {
-      const container = document.getElementById("vocab-info-display");
-      
-      // Thu thập các nguồn
-      const sources = [];
-      
-      // Thêm từ NotebookLM nếu có
-      if (notebookVocab && notebookVocab.meaning && notebookVocab.meaning.trim() !== "") {
-          sources.push({
-              type: 'notebook',
-              icon: '📔',
-              label: 'NotebookLM',
-              meaning: notebookVocab.meaning,
-              color: '#9c27b0'
-          });
-      }
-      
-      // Thêm từ Google Translate nếu có
-      if (existingVocab && existingVocab.meaning && existingVocab.meaning !== "Đang tra cứu...") {
-          // Kiểm tra xem có bị trùng với notebook không
-          const isDuplicate = sources.some(s => s.meaning === existingVocab.meaning);
-          if (!isDuplicate) {
-              sources.push({
-                  type: 'google',
-                  icon: '🌐',
-                  label: 'Google Dịch',
-                  meaning: existingVocab.meaning,
-                  color: '#4285f4'
-              });
-          }
-      }
-      
-      // Nếu không có nguồn nào
-      if (sources.length === 0) {
-          container.innerHTML = `
-              <div class="vocab-info-item" style="border-left-color: #607d8b; padding: 15px; text-align: center;">
-                  <div style="color: #607d8b; font-style: italic;">
-                      👉 Nhấp vào từ vựng được tô màu trong phụ đề để xem chi tiết
-                  </div>
-              </div>
-          `;
-          return;
-      }
-      
-      // Xây dựng HTML hiển thị tất cả các nguồn
-      let html = `<div class="vocab-info-item" style="border-left-color: #4CAF50; padding: 15px;">`;
-      
-      // Header với từ và số lượng nguồn
-      html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">
-          <span style="font-size: 10px; font-weight: bold; color: #2196F3;">${word}</span>
-          ${sources.length > 1 ? 
-              `<span style="background: #4CAF50; color: white; padding: 2px 5px; border-radius: 9px; font-size: 5px; font-weight: bold;">
-                  🥇 ${sources.length} nguồn
-              </span>` : 
-              `<span style="background: #607d8b; color: white; padding: 2px 5px; border-radius: 9px; font-size: 5px;">
-                  1 nguồn
-              </span>`
-          }
-      </div>`;
-      
-      // Hiển thị từng nguồn
-      sources.forEach((source, index) => {
-          html += `
-              <div style="margin-bottom: ${index < sources.length - 1 ? '4px' : '0'}; 
-                          background: ${source.color}10;
-                          border-radius: 8px;
-                          padding: 5px;">
-                  <div style="display: flex; align-items: center; gap: 2px; margin-bottom: 2px;">
-                      <span style="font-size: 9px;">${source.icon}</span>
-                      <span style="color: ${source.color}; font-weight: bold; font-size: 7px; text-transform: uppercase; letter-spacing: 0.5px;">
-                          ${source.label}
-                      </span>
-                  </div>
-                  <div style="color: #333; margin-left: 13px; line-height: 1.3; word-break: break-word; font-size: 8px;">
-                      ${source.meaning}
-                  </div>
-              </div>
-          `;
-      });
-      
-      // Thêm nút hành động
-      html += `<div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 12px;">
-          <button onclick="openNaverDict('${word}')" style="background: #03c75a; color: white; border: none; border-radius: 6px; padding: 3px 5px; cursor: pointer; font-size: 6px; display: flex; align-items: center; gap: 5px;"> 
-              <span>🇰🇷</span> Tra Naver
-          </button>
-          <button onclick="fetchGoogleTranslate('${word}')" style="background: #4285f4; color: white; border: none; border-radius: 6px; padding: 3px 5px; cursor: pointer; font-size: 6px; display: flex; align-items: center; gap: 5px;">
-              <span>🌐</span> Dịch lại
-          </button>
-      </div>`;
-      
-      html += `</div>`;
-      container.innerHTML = html;
-  }
+            const container = document.getElementById("vocab-info-display");
+            let html = `<div class="vocab-info-item">`;
+            
+            html += `<div><span class="vocab-info-korean">${word}</span>`;
+            
+            if (existingVocab?.meaning) {
+                html += `<span class="vocab-info-meaning">${existingVocab.meaning}</span>`;
+           }
+            html += `</div>`;
+            
+            if (notebookVocab?.meaning && (!existingVocab || notebookVocab.meaning !== existingVocab.meaning)) {
+                html += `<div class="vocab-info-notebook">📔 NotebookLM: ${notebookVocab.meaning}</div>`;
+           }
+            
+            
+            
+            html += `</div>`;
+            container.innerHTML = html;
+       }
 
         function findWordAppearances(word) {
             const result = [];
@@ -1355,14 +1221,21 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 currentSubtitleIndex = nextIndex;
                 updateSubtitleDisplay(currentSubtitleIndex);
                 
-                const autoVocabs = vocabList
-                .filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex))
-                .sort((a, b) => (b.isLinked ? 1 : 0) - (a.isLinked ? 1 : 0));
+                const autoVocabs = vocabList.filter(v => 
+                    v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex)
+                );
                 if (autoVocabs.length > 0) {
-                      const wordData = autoVocabs[0];
-                      const notebookVocab = getNotebookVocabInfo(wordData.word);
-                      displayVocabInfo(wordData.word, wordData, notebookVocab); // Dòng này quan trọng
-                  }
+                    const wordData = autoVocabs[0];
+                    const notebookVocab = getNotebookVocabInfo(wordData.word);
+
+                    // Chỉ hiển thị đúng thời điểm hiện tại (không render toàn bộ savedIndexes)
+                    const singleDisplayData = {
+                        ...wordData,
+                        savedIndexes: [currentSubtitleIndex]
+                    };
+
+                    displayVocabInfo(wordData.word, singleDisplayData, notebookVocab);
+                }
                 
                 const textToRead = ttsLanguage === "vi-VN" ? nextSubtitle.vietnameseText : nextSubtitle.koreanText;
                 const currentTimeMs = Date.now();
@@ -1396,28 +1269,17 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
 
             for (let i = startIndex; i <= endIndex; i++) {
                 const sub = subtitleData[i];
-                const linkedVocab = vocabList.find(v =>
-                    v.savedIndexes &&
-                    v.savedIndexes.includes(i)
-                );
-
                 const highlightedKoreanText = sub.koreanText.split(/\s+/).map(word => {
                     const cleanWord = word.replace(/[^\p{Script=Hangul}]+/gu, "").trim();
-
-                    if (linkedVocab && cleanWord.includes(linkedVocab.word)) {  
-                        return `<span class="korean-word learned"  
-                            style="background-color:#ffeb3b;  
-                                   font-weight:bold;  
-                                   border-radius:4px;  
-                                   padding:2px 6px;">  
-                            ${word}</span>`;  
-                    }  
-
-                    return `<span class="korean-word"  
-                        onclick="handleWordClick('${cleanWord}', ${i})">  
-                        ${word}</span>`;
-
-                }).join(" ");
+                    const isNotebookVocab = notebookVocab.some(v => v.includes(cleanWord) || cleanWord.includes(v));
+                    
+                    if (isNotebookVocab) {
+                        return `<span class="korean-word learned" onclick="handleWordClick('${cleanWord}', ${i})" 
+                                style="font-weight:bold;background-color:#e3f2fd;padding:2px 4px;border-radius:3px;border-bottom:2px solid #2196F3;">
+                                ${word}</span>`;
+                   }
+                    return `<span class="korean-word" onclick="handleWordClick('${cleanWord}', ${i})"> ${word}</span>`;
+               }).join(" ");
                 const isCurrent = i === index ? "current" : "";
                 subtitleContent += `<div class="subtitle-line ${isCurrent}"> ${formatTime(sub.startTime)}: ${highlightedKoreanText} <span class="vietnamese"> ${sub.vietnameseText}</span> </div>`;
            }
@@ -2124,6 +1986,104 @@ window.toggleNaverLookup = function(enabled) {
 };
     </script>
 
+    <script>
+    // ===== SRT DIRECT EDIT FUNCTIONS =====
+
+    function mergeSubtitles() {
+        if (!subtitleData || subtitleData.length < 2) {
+            alert("Không đủ dòng để gộp");
+            return;
+        }
+
+        const n = parseInt(document.getElementById("merge-lines-count").value) || 2;
+        if (n < 2) {
+            alert("Số dòng gộp phải ít nhất là 2!");
+            return;
+        }
+
+        let newData = [];
+
+        for (let i = 0; i < subtitleData.length; i += n) {
+            const group = subtitleData.slice(i, i + n);
+            const first = group[0];
+            const last = group[group.length - 1];
+
+            newData.push({
+                startTime: first.startTime,
+                endTime: last.endTime,
+                koreanText: group.map(s => s.koreanText || "").join(" ").replace(/\s+/g, " ").trim(),
+                vietnameseText: group.map(s => s.vietnameseText || "").join(" ").replace(/\s+/g, " ").trim(),
+                fullText: group.map(s => ((s.koreanText || "") + " " + (s.vietnameseText || "")).trim()).join(" ").trim()
+            });
+        }
+
+        subtitleData = newData;
+        window.subtitleData = newData;
+
+        if (typeof displaySubtitleList === 'function') displaySubtitleList();
+        saveToHistory(currentVideoUrl, convertToSRT(subtitleData), document.getElementById("notebooklm-vocab").value);
+        alert("Đã gộp thành công! Gộp " + n + " dòng → còn " + newData.length + " dòng phụ đề.");
+    }
+
+    function removeCharsFromSRT() {
+        const chars = document.getElementById("chars-remove-srt").value;
+        if (!chars) {
+            alert("Vui lòng nhập ký tự cần xóa!");
+            return;
+        }
+        if (!subtitleData || subtitleData.length === 0) {
+            alert("Chưa có phụ đề để xử lý!");
+            return;
+        }
+
+        subtitleData = subtitleData.map(sub => {
+            let k = sub.koreanText || "";
+            let v = sub.vietnameseText || "";
+
+            for (let c of chars) {
+                k = k.split(c).join("");
+                v = v.split(c).join("");
+            }
+
+            k = k.replace(/\s+/g, " ").trim();
+            v = v.replace(/\s+/g, " ").trim();
+
+            return {
+                ...sub,
+                koreanText: k,
+                vietnameseText: v,
+                fullText: (k + " " + v).trim()
+            };
+        });
+
+        window.subtitleData = subtitleData;
+
+        if (typeof displaySubtitleList === 'function') displaySubtitleList();
+        saveToHistory(currentVideoUrl, convertToSRT(subtitleData), document.getElementById("notebooklm-vocab").value);
+        alert("Đã xóa ký tự trong SRT thành công!");
+    }
+
+    function downloadEditedSRT() {
+        if (!subtitleData || subtitleData.length === 0) {
+            alert("Chưa có phụ đề để tải!");
+            return;
+        }
+
+        const srt = convertToSRT(subtitleData);
+        const blob = new Blob([srt], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "edited_subtitles.srt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+    }
+    </script>
+
     <!-- Nút Reset Dữ Liệu - Được thêm tự động -->
     <div style="text-align: center; margin: 20px 0;">
         <button onclick="resetToDefault()" style="padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: 500; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
@@ -2208,22 +2168,6 @@ window.toggleNaverLookup = function(enabled) {
     </style>
 
 
-<!-- 🔧 SRT MERGE + CLEAN + SENTENCE SPLIT UI -->
-<div id="srt-tools" style="position:fixed; right:10px; bottom:10px; width:320px; max-height:70vh; overflow:auto; background:#ffffff; border:1px solid #ddd; border-radius:12px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); z-index:9999;">
-  <button id="btn-hide-srt" style="position:absolute; top:6px; right:8px; cursor:pointer;">❌</button>
-  <h3 style="margin:0 0 8px 0;">⚙️ Xử lý SRT</h3>
-  <div style="font-size:12px; color:#666; margin-bottom:8px;">Gộp N dòng, xoá ký tự rác, tách câu & phân bổ thời gian cho TTS</div>
-  <label>Số dòng muốn gộp (N):</label>
-  <input id="merge-count" type="number" value="2" min="1" style="width:80px; margin-left:6px;">
-  <div style="height:8px;"></div>
-  <label>Ký tự muốn xoá (vd: >> - ♪):</label>
-  <input id="remove-chars-srt" type="text" placeholder="Nhập ký tự cần xoá" style="width:100%;">
-  <div style="height:10px;"></div>
-  <button id="btn-process-srt" style="width:100%; padding:8px; border-radius:8px; cursor:pointer;">🚀 Gộp + Làm sạch + Tách câu</button>
-  <div style="height:6px;"></div>
-  <button id="btn-download-srt" style="width:100%; padding:8px; border-radius:8px; cursor:pointer;">💾 Tải SRT sau khi xử lý</button>
-  <div id="srt-status" style="font-size:12px; color:#0a7; margin-top:6px;"></div>
-</div>
 
 
 <script>
@@ -2373,208 +2317,6 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
-
-<button id="btn-show-srt" style="position:fixed; right:10px; bottom:10px; z-index:9998; display:none; padding:8px 10px; border-radius:8px;">⚙️ SRT</button>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-    const panel = document.getElementById('srt-tools');
-    const hideBtn = document.getElementById('btn-hide-srt');
-    const showBtn = document.getElementById('btn-show-srt');
-    const downloadBtn = document.getElementById('btn-download-srt');
-
-    function hidePanel(){
-        if(panel) panel.style.display='none';
-        if(showBtn) showBtn.style.display='block';
-    }
-    function showPanel(){
-        if(panel) panel.style.display='block';
-        if(showBtn) showBtn.style.display='none';
-    }
-
-    if(hideBtn) hideBtn.addEventListener('click', hidePanel);
-    if(showBtn) showBtn.addEventListener('click', showPanel);
-    if(downloadBtn) downloadBtn.addEventListener('click', hidePanel);
-});
-</script>
-
-
-
-
-<!-- Firebase Integration - Manual Sync Only (ĐÃ SỬA HOÀN CHỈNH) -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyC3ArgRBdzrj-Njnq6A9KB--9LT45LUNJ8",
-  authDomain: "yt-srt-sync.firebaseapp.com",
-  projectId: "yt-srt-sync",
-  storageBucket: "yt-srt-sync.firebasestorage.app",
-  messagingSenderId: "64219190974",
-  appId: "1:64219190974:web:ae6ca30879b9c654d4b0ef"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-async function checkCloudData(user) {
-    try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-            const data = snap.data();
-            const lastSync = data.lastSync ? new Date(data.lastSync).toLocaleString('vi-VN') : 'Không rõ';
-            const dataStr = JSON.stringify(data.localStorageData || {});
-            const sizeKB = (dataStr.length / 1024).toFixed(2);
-
-            document.getElementById('lastSyncInfo').innerHTML = `Lần đồng bộ cuối: ${lastSync}`;
-            document.getElementById('dataSizeInfo').innerHTML = `Dung lượng: ${sizeKB} KB`;
-            document.getElementById('syncStatusMain').innerHTML = `✅ Đã đăng nhập. Có ${Object.keys(data.localStorageData || {}).length} mục dữ liệu.`;
-        } else {
-            document.getElementById('lastSyncInfo').innerHTML = 'Lần đồng bộ cuối: Chưa có dữ liệu';
-            document.getElementById('dataSizeInfo').innerHTML = 'Dung lượng: 0 KB';
-        }
-    } catch (error) {
-        console.error("Lỗi kiểm tra cloud:", error);
-    }
-}
-
-window.uploadToCloud = async function() {
-    const user = auth.currentUser;
-    if (!user) { alert('Vui lòng đăng nhập!'); return; }
-    try {
-        document.getElementById('syncStatusMain').innerHTML = '⏳ Đang upload...';
-        const allData = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            allData[k] = localStorage.getItem(k);
-        }
-        await setDoc(doc(db, "users", user.uid), {
-            localStorageData: allData,
-            lastSync: new Date().toISOString(),
-            userEmail: user.email
-        });
-        document.getElementById('syncStatusMain').innerHTML = '✅ Upload thành công!';
-        alert("📤 Upload dữ liệu lên cloud thành công!");
-        checkCloudData(user);
-    } catch (error) {
-        document.getElementById('syncStatusMain').innerHTML = '❌ Lỗi: ' + error.message;
-        alert('❌ Lỗi upload: ' + error.message);
-    }
-};
-
-window.downloadFromCloud = async function() {
-    const user = auth.currentUser;
-    if (!user) { alert('Vui lòng đăng nhập!'); return; }
-    if (!confirm('⚠️ Tải dữ liệu từ cloud sẽ GHI ĐÈ dữ liệu hiện tại. Tiếp tục?')) return;
-    try {
-        document.getElementById('syncStatusMain').innerHTML = '⏳ Đang tải...';
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (!snap.exists()) { 
-            document.getElementById('syncStatusMain').innerHTML = '⚠️ Không có dữ liệu';
-            alert("Không có dữ liệu trên cloud"); 
-            return; 
-        }
-        const data = snap.data().localStorageData || {};
-        if (Object.keys(data).length === 0) {
-            alert("Dữ liệu trên cloud trống!");
-            return;
-        }
-        localStorage.clear();
-        Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
-        document.getElementById('syncStatusMain').innerHTML = '✅ Tải thành công! Đang tải lại...';
-        alert("📥 Tải thành công! Trang sẽ tải lại.");
-        setTimeout(() => location.reload(), 1500);
-    } catch (error) {
-        document.getElementById('syncStatusMain').innerHTML = '❌ Lỗi: ' + error.message;
-        alert('❌ Lỗi download: ' + error.message);
-    }
-};
-
-window.deleteCloudData = async function() {
-    const user = auth.currentUser;
-    if (!user) { alert('Vui lòng đăng nhập!'); return; }
-    if (!confirm('⚠️⚠️⚠️ XÓA TOÀN BỘ dữ liệu trên cloud? KHÔNG THỂ HOÀN TÁC!')) return;
-    try {
-        document.getElementById('syncStatusMain').innerHTML = '⏳ Đang xóa...';
-        await setDoc(doc(db, "users", user.uid), { 
-            localStorageData: {}, 
-            lastSync: new Date().toISOString(),
-            userEmail: user.email
-        });
-        document.getElementById('syncStatusMain').innerHTML = '✅ Đã xóa dữ liệu cloud';
-        alert('🗑️ Đã xóa toàn bộ dữ liệu cloud!');
-        checkCloudData(user);
-    } catch (error) {
-        document.getElementById('syncStatusMain').innerHTML = '❌ Lỗi: ' + error.message;
-        alert('❌ Lỗi xóa: ' + error.message);
-    }
-};
-
-document.getElementById('loginBtnMain').onclick = async () => { 
-    try { await signInWithPopup(auth, provider); } 
-    catch (error) { alert('❌ Lỗi đăng nhập: ' + error.message); }
-};
-
-document.getElementById('logoutBtnMain').onclick = async () => { 
-    await signOut(auth); 
-};
-
-onAuthStateChanged(auth, (user) => {
-    document.getElementById('loginBtnMain').style.display = user ? 'none' : 'inline-block';
-    document.getElementById('logoutBtnMain').style.display = user ? 'inline-block' : 'none';
-    document.getElementById('uploadBtn').disabled = !user;
-    document.getElementById('downloadBtn').disabled = !user;
-    document.getElementById('deleteCloudBtn').disabled = !user;
-
-    if (user) {
-        document.getElementById('userEmailDisplay').textContent = user.email;
-        if (user.photoURL) {
-            document.getElementById('userAvatar').src = user.photoURL;
-            document.getElementById('userAvatar').style.display = 'inline-block';
-        }
-        document.getElementById('syncStatusMain').innerHTML = '✅ Đã đăng nhập. Đang kiểm tra dữ liệu...';
-        checkCloudData(user);
-    } else {
-        document.getElementById('userEmailDisplay').textContent = '';
-        document.getElementById('userAvatar').style.display = 'none';
-        document.getElementById('syncStatusMain').innerHTML = '⚡ Chưa đăng nhập';
-        document.getElementById('lastSyncInfo').innerHTML = 'Lần đồng bộ cuối: Chưa có';
-        document.getElementById('dataSizeInfo').innerHTML = 'Dung lượng: 0 KB';
-    }
-});
-
-// XÓA DỮ LIỆU CLOUD (BỔ SUNG)
-window.deleteCloudData = async function() {
-    const user = auth.currentUser;
-    if (!user) { alert('Vui lòng đăng nhập!'); return; }
-
-    if (!confirm('⚠️⚠️⚠️ XÓA TOÀN BỘ dữ liệu trên cloud? KHÔNG THỂ HOÀN TÁC!')) return;
-
-    try {
-        document.getElementById('syncStatusMain').innerHTML = '⏳ Đang xóa...';
-
-        await setDoc(doc(db, "users", user.uid), { 
-            localStorageData: {}, 
-            lastSync: new Date().toISOString(),
-            userEmail: user.email
-        });
-
-        document.getElementById('syncStatusMain').innerHTML = '✅ Đã xóa dữ liệu cloud';
-        alert('🗑️ Đã xóa toàn bộ dữ liệu cloud!');
-        checkCloudData(user);
-
-    } catch (error) {
-        document.getElementById('syncStatusMain').innerHTML = '❌ Lỗi: ' + error.message;
-        alert('❌ Lỗi xóa: ' + error.message);
-    }
-};
-
-</script>
 
 
 </body>
