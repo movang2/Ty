@@ -1,4 +1,4 @@
-l<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -421,7 +421,7 @@ l<!DOCTYPE html>
             <button onclick="stopReading()">Dừng TTS</button>
             <button class="rewind-btn" onclick="rewindSubtitle()">Lùi 5 giây</button>
             <button class="test-tts-btn" onclick="testTTS()">Kiểm tra TTS</button>
-            <button class="repeat-btn" onclick="toggleRepeat()">Lặp Phụ đề (Bật/Tắt)</button>
+            <button class="repeat-btn" id="vocab-pause-tts-btn" onclick="toggleVocabPauseTTS()">Tạm dừng &amp; Đọc Từ vựng (Tắt)</button>
             <button onclick="saveState()">Lưu Trạng Thái</button>
             <button class="translate-srt-btn" onclick="translateSRT()">Dịch Phụ đề</button>
         </div>
@@ -578,9 +578,9 @@ function showSRTPanel() {
         let lastSpokenTime = 0;
         let lastCheckedTime = 0;
         let isManualSeeking = false;
-        let isRepeating = false;
-        let repeatCount = 0;
-        const maxRepeatCount = 3;
+        let vocabPauseTTSEnabled = false;
+        let lastVocabPauseIndex = -1;
+        let isVocabPauseSpeaking = false;
         let subtitleOffset = 0;
         let currentVideoFavorites = [];
         let vocabTTSMode = false;
@@ -687,6 +687,7 @@ function showSRTPanel() {
            }
             if (newIndex >= 0 && newIndex !== currentSubtitleIndex) {
                 currentSubtitleIndex = newIndex;
+                lastVocabPauseIndex = -1;
                 updateSubtitleDisplay(newIndex);
                 if (isSpeaking) {
                     const textToRead = ttsLanguage === "vi-VN" ? subtitleData[newIndex].vietnameseText : subtitleData[newIndex].koreanText;
@@ -1370,16 +1371,27 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             if (nextSubtitle && nextIndex !== currentSubtitleIndex) {
                 currentSubtitleIndex = nextIndex;
                 updateSubtitleDisplay(currentSubtitleIndex);
-                
+
                 const autoVocabs = vocabList
-                .filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex))
+                .filter(v => v.savedIndexes && v.savedIndexes.includes(currentSubtitleIndex) && v.isLinked)
                 .sort((a, b) => (b.isLinked ? 1 : 0) - (a.isLinked ? 1 : 0));
                 if (autoVocabs.length > 0) {
                       const wordData = autoVocabs[0];
                       const notebookVocab = getNotebookVocabInfo(wordData.word);
                       displayVocabInfo(wordData.word, wordData, notebookVocab); // Dòng này quan trọng
                   }
-                
+
+                // ==== Tính năng: Khi gặp từ vựng đã liên kết ====
+                // Tạm dừng video, đọc TTS Hàn + nghĩa Việt, rồi phát tiếp
+                if (vocabPauseTTSEnabled
+                    && autoVocabs.length > 0
+                    && currentSubtitleIndex !== lastVocabPauseIndex
+                    && !isVocabPauseSpeaking) {
+                    lastVocabPauseIndex = currentSubtitleIndex;
+                    triggerVocabPauseTTS(autoVocabs[0]);
+                    return; // Bỏ qua đọc phụ đề trong vòng này
+                }
+
                 const textToRead = ttsLanguage === "vi-VN" ? nextSubtitle.vietnameseText : nextSubtitle.koreanText;
                 const currentTimeMs = Date.now();
                 if (textToRead !== lastSpokenText || (currentTimeMs - lastSpokenTime) > 1000) {
@@ -1387,18 +1399,79 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                     isSpeaking = true;
                     readText(textToRead, () => {
                         isSpeaking = false;
-                        if (isRepeating && repeatCount < maxRepeatCount) {
-                            repeatCount++;
-                            youtubePlayer.seekTo(nextSubtitle.startTime, true);
-                       } else {
-                            repeatCount = 0;
-                       }
                    });
                     lastSpokenText = textToRead;
                     lastSpokenTime = currentTimeMs;
                }
            }
        }
+
+        // ==== TÍNH NĂNG: Tạm dừng & Đọc Từ vựng (Hàn + Việt) ====
+        function triggerVocabPauseTTS(vocab) {
+            if (!youtubePlayer || !vocab) return;
+            try {
+                speechSynthesis.cancel();
+            } catch (e) {}
+            isVocabPauseSpeaking = true;
+            try {
+                youtubePlayer.pauseVideo();
+            } catch (e) {}
+
+            const koreanWord = (vocab.word || "").trim();
+            const vietnameseMeaning = (vocab.meaning || "").trim();
+
+            const speakKorean = () => new Promise((resolve) => {
+                if (!koreanWord) return resolve();
+                const u = new SpeechSynthesisUtterance(koreanWord);
+                u.lang = "ko-KR";
+                u.rate = ttsSpeed;
+                u.volume = ttsVolume;
+                const voices = speechSynthesis.getVoices();
+                const ko = voices.find(v => v.lang === "ko-KR") || voices.find(v => v.lang && v.lang.startsWith("ko"));
+                if (ko) u.voice = ko;
+                u.onend = () => resolve();
+                u.onerror = () => resolve();
+                speechSynthesis.speak(u);
+            });
+
+            const speakVietnamese = () => new Promise((resolve) => {
+                if (!vietnameseMeaning) return resolve();
+                const u = new SpeechSynthesisUtterance(vietnameseMeaning);
+                u.lang = "vi-VN";
+                u.rate = ttsSpeed;
+                u.volume = ttsVolume;
+                const voices = speechSynthesis.getVoices();
+                const vi = voices.find(v => v.lang === "vi-VN") || voices.find(v => v.lang && v.lang.startsWith("vi"));
+                if (vi) u.voice = vi;
+                u.onend = () => resolve();
+                u.onerror = () => resolve();
+                speechSynthesis.speak(u);
+            });
+
+            speakKorean()
+                .then(() => speakVietnamese())
+                .finally(() => {
+                    isVocabPauseSpeaking = false;
+                    if (vocabPauseTTSEnabled && youtubePlayer) {
+                        try {
+                            youtubePlayer.playVideo();
+                        } catch (e) {}
+                    }
+                });
+        }
+
+        function toggleVocabPauseTTS() {
+            vocabPauseTTSEnabled = !vocabPauseTTSEnabled;
+            lastVocabPauseIndex = -1;
+            const btn = document.getElementById("vocab-pause-tts-btn");
+            if (btn) {
+                btn.textContent = vocabPauseTTSEnabled
+                    ? "Tạm dừng & Đọc Từ vựng (Bật)"
+                    : "Tạm dừng & Đọc Từ vựng (Tắt)";
+                btn.style.backgroundColor = vocabPauseTTSEnabled ? "#7b1fa2" : "";
+            }
+            try { localStorage.setItem("vocabPauseTTSEnabled", vocabPauseTTSEnabled ? "1" : "0"); } catch (e) {}
+        }
 
         function updateSubtitleDisplay(index) {
             const startIndex = Math.max(0, index - 2);
@@ -1534,13 +1607,8 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 clearInterval(syncInterval);
                 syncInterval = null;
            }
-            isRepeating = false;
-            repeatCount = 0;
-       }
-
-        function toggleRepeat() {
-            isRepeating = !isRepeating;
-            alert(isRepeating ? "Đã bật chế độ lặp phụ đề (3 lần)" : "Đã tắt chế độ lặp phụ đề");
+            lastVocabPauseIndex = -1;
+            isVocabPauseSpeaking = false;
        }
 
         function rewindSubtitle() {
@@ -1925,6 +1993,15 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 naverLookupEnabled = localStorage.getItem("naverLookup") === "1";
                 subtitleOffset = parseFloat(localStorage.getItem("subtitleOffset")) || 0;
                 vocabDisplayMode = localStorage.getItem("vocabDisplayMode") === "true";
+                vocabPauseTTSEnabled = localStorage.getItem("vocabPauseTTSEnabled") === "1";
+
+                const vpBtn = document.getElementById("vocab-pause-tts-btn");
+                if (vpBtn) {
+                    vpBtn.textContent = vocabPauseTTSEnabled
+                        ? "Tạm dừng & Đọc Từ vựng (Bật)"
+                        : "Tạm dừng & Đọc Từ vựng (Tắt)";
+                    if (vocabPauseTTSEnabled) vpBtn.style.backgroundColor = "#7b1fa2";
+                }
 
                 document.getElementById("tts-speed").value = ttsSpeed;
                 document.getElementById("speed-value").textContent = ttsSpeed;
