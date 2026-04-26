@@ -1417,8 +1417,8 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 youtubePlayer.pauseVideo();
             } catch (e) {}
 
-            const koreanWord = (vocab.word || "").trim();
-            const vietnameseMeaning = (vocab.meaning || "").trim();
+            const koreanWord = removeBracketsContent((vocab.word || "").trim());
+            const vietnameseMeaning = removeBracketsContent((vocab.meaning || "").trim());
 
             const speakKorean = () => new Promise((resolve) => {
                 if (!koreanWord) return resolve();
@@ -2559,3 +2559,4 @@ window.deleteCloudData = async function() {
 
 </body>
     </html>
+
