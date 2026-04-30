@@ -497,7 +497,7 @@
     <textarea id="notebooklm-vocab" rows="10" placeholder="Dán danh sách từ ở đây..."></textarea>
     
                     <div style="margin-top: 10px; display: flex; align-items: center; gap: 5px;">
-                        <input type="text" id="chars-to-remove" placeholder="Nhập ký tự cần xóa (ví dụ: *>)">
+                        <input type="text" id="chars-to-remove" value="**" placeholder="Nhập ký tự cần xóa (ví dụ: **, >>, ))) — tách bằng dấu phẩy">
                         <button onclick="removeCharacters()">Xóa ký tự</button>
                     </div>
                     <button onclick="linkVocabToSubtitles()">Liên kết từ vựng với phụ đề</button>
@@ -515,7 +515,7 @@
                             </div>
                         </div>
                         <div style="margin-top: 8px;">
-                            <input type="text" id="chars-remove-srt" placeholder="Ký tự cần xóa trong SRT (vd: ♪ >)" style="width:100%; box-sizing:border-box; font-size:18px; padding:10px 12px; border:2px solid #ff9800; border-radius:6px; color:#222; background:#fff; letter-spacing:2px;">
+                            <input type="text" id="chars-remove-srt" value=">>, [음악]" placeholder="Chuỗi cần xóa trong SRT (vd: >>, [음악], ))) — tách bằng dấu phẩy" style="width:100%; box-sizing:border-box; font-size:18px; padding:10px 12px; border:2px solid #ff9800; border-radius:6px; color:#222; background:#fff; letter-spacing:2px;">
                             <button onclick="removeCharsFromSRT()" style="margin-top:6px; width:100%; background-color:#ff9800; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:14px;">Xóa trong SRT</button>
                         </div>
                     </div>
@@ -529,16 +529,16 @@ function showSRTPanel() {
 
                         function removeCharacters() {
                             const textArea = document.getElementById("notebooklm-vocab");
-                            const charsToRemove = document.getElementById("chars-to-remove").value;
-                            if (textArea && charsToRemove) {
+                            const input = document.getElementById("chars-to-remove").value;
+                            if (textArea && input) {
                                 let content = textArea.value;
-                                for (let i = 0; i < charsToRemove.length; i++) {
-                                    const char = charsToRemove[i];
-                                    content = content.split(char).join("");
-                               }
+                                const patterns = input.split(",").map(s => s.trim()).filter(s => s);
+                                patterns.forEach(pattern => {
+                                    content = content.split(pattern).join("");
+                                });
                                 textArea.value = content;
-                           }
-                       }
+                            }
+                        }
                     </script>
                 
     <div id="linked-vocab-list"></div>
@@ -2335,22 +2335,27 @@ window.toggleNaverLookup = function(enabled) {
     }
 
     function removeCharsFromSRT() {
-        const chars = document.getElementById("chars-remove-srt").value;
-        if (!chars) {
-            alert("Vui lòng nhập ký tự cần xóa!");
+        const input = document.getElementById("chars-remove-srt").value;
+        if (!input) {
+            alert("Vui lòng nhập chuỗi cần xóa!");
             return;
         }
         if (!subtitleData || subtitleData.length === 0) {
             alert("Chưa có phụ đề để xử lý!");
             return;
         }
+        const patterns = input.split(",").map(s => s.trim()).filter(s => s);
+        if (patterns.length === 0) {
+            alert("Không có chuỗi hợp lệ để xóa!");
+            return;
+        }
         subtitleData = subtitleData.map(sub => {
             let k = sub.koreanText || "";
             let v = sub.vietnameseText || "";
-            for (let c of chars) {
-                k = k.split(c).join("");
-                v = v.split(c).join("");
-            }
+            patterns.forEach(pattern => {
+                k = k.split(pattern).join("");
+                v = v.split(pattern).join("");
+            });
             k = k.replace(/\s+/g, " ").trim();
             v = v.replace(/\s+/g, " ").trim();
             return { ...sub, koreanText: k, vietnameseText: v, fullText: (k + " " + v).trim() };
@@ -2358,7 +2363,7 @@ window.toggleNaverLookup = function(enabled) {
         window.subtitleData = subtitleData;
         if (typeof displaySubtitleList === 'function') displaySubtitleList();
         saveToHistory(currentVideoUrl, convertToSRT(subtitleData), document.getElementById("notebooklm-vocab").value);
-        alert("Đã xóa ký tự trong SRT thành công!");
+        alert("Đã xóa chuỗi trong SRT thành công!");
     }
 
     function downloadEditedSRT() {
