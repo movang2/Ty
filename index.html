@@ -416,46 +416,167 @@
         <button onclick="loadSubtitles()">Tải Phụ đề</button>
         <button class="auto-sub-btn" onclick="loadAutoSubtitles()">Tải Phụ đề Tự động</button>
         <br>
-        <div class="control-buttons">
-            <button onclick="startReading()">Bắt đầu Đọc</button>
-            <button onclick="stopReading()">Dừng TTS</button>
-            <button class="rewind-btn" onclick="rewindSubtitle()">Lùi 5 giây</button>
-            <button class="test-tts-btn" onclick="testTTS()">Kiểm tra TTS</button>
-            <button class="repeat-btn" id="vocab-pause-tts-btn" onclick="toggleVocabPauseTTS()">Tạm dừng &amp; Đọc Từ vựng (Tắt)</button>
-            <button onclick="saveState()">Lưu Trạng Thái</button>
-            <button class="translate-srt-btn" onclick="translateSRT()">Dịch Phụ đề</button>
+
+        <style>
+        .ctrl-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .ctrl-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 7px 10px;
+            flex-wrap: wrap;
+        }
+        .ctrl-group-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 60px;
+            border-right: 1px solid #ccc;
+            padding-right: 8px;
+            margin-right: 2px;
+        }
+        .ctrl-group button {
+            margin: 0;
+            padding: 6px 12px;
+            width: auto;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: opacity 0.15s;
+        }
+        .ctrl-group button:hover { opacity: 0.85; }
+        .btn-tts-start  { background: #4CAF50; color: white; }
+        .btn-tts-stop   { background: #e53935; color: white; }
+        .btn-tts-test   { background: #FF9800; color: white; }
+        .btn-tts-vocab  { background: #9c27b0; color: white; }
+        .btn-vid-rewind { background: #2196F3; color: white; }
+        .btn-vid-trans  { background: #f44336; color: white; }
+        .btn-state-save { background: #607d8b; color: white; }
+        .btn-state-load-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin: 0;
+            padding: 6px 12px;
+            background: #78909c;
+            color: white;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .btn-state-load-label:hover { opacity: 0.85; }
+        .btn-state-load-label input[type=file] { display: none; }
+
+        .settings-panel {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 6px;
+        }
+        .settings-toggle {
+            background: none;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 12px;
+            color: #555;
+            cursor: pointer;
+            width: auto;
+            margin: 4px 0 0 0;
+        }
+        .settings-toggle:hover { background: #eee; }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .settings-row label { font-size: 13px; color: #444; white-space: nowrap; }
+        </style>
+
+        <div class="ctrl-groups">
+
+            <!-- NHÓM 1: TTS -->
+            <div class="ctrl-group">
+                <span class="ctrl-group-label">🔊 TTS</span>
+                <button class="btn-tts-start" onclick="startReading()">▶ Bắt đầu</button>
+                <button class="btn-tts-stop"  onclick="stopReading()">⏹ Dừng</button>
+                <button class="btn-tts-test"  onclick="testTTS()">🎵 Kiểm tra</button>
+                <button class="btn-tts-vocab" id="vocab-pause-tts-btn" onclick="toggleVocabPauseTTS()">📖 Đọc từ vựng (Tắt)</button>
+            </div>
+
+            <!-- NHÓM 2: VIDEO / PHỤ ĐỀ -->
+            <div class="ctrl-group">
+                <span class="ctrl-group-label">🎬 Video</span>
+                <button class="btn-vid-rewind" onclick="rewindSubtitle()">⏪ Lùi 5 giây</button>
+                <button class="btn-vid-trans"  onclick="translateSRT()">🌐 Dịch phụ đề</button>
+            </div>
+
+            <!-- NHÓM 3: LƯU / TẢI -->
+            <div class="ctrl-group">
+                <span class="ctrl-group-label">💾 Dữ liệu</span>
+                <button class="btn-state-save" onclick="saveState()">💾 Lưu trạng thái</button>
+                <label class="btn-state-load-label">
+                    📂 Tải trạng thái
+                    <input type="file" id="state-file" accept=".json" onchange="loadState()">
+                </label>
+            </div>
+
         </div>
-        <input type="file" id="state-file" accept=".json">
-        <button onclick="loadState()">Tải Trạng Thái</button>
-        <div id="tts-speed-container">
-            <label for="tts-speed">Tốc độ TTS: </label>
-            <input type="range" id="tts-speed" min="0.5" max="2.5" step="0.1" value="1.5" onchange="updateTTSSpeed(this.value)">
-            <span id="speed-value">1.5</span>
-        </div>
-        <div id="tts-language-container">
-            <label for="tts-language">Ngôn ngữ TTS: </label>
-            <select id="tts-language" onchange="updateTTSLanguage(this.value)">
-                <option value="vi-VN">Tiếng Việt</option>
-                <option value="ko-KR">Tiếng Hàn</option>
-            </select>
-        </div>
-        <div style="margin-top:10px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-            <label for="subtitle-offset">Lệch thời gian phụ đề (giây): </label>
-            <button onclick="toggleNegativeOffset()">-</button>
-            <input type="number" id="subtitle-offset" min="-5" max="5" step="0.1" value="0" style="width: 70px; text-align: center;" onchange="updateSubtitleOffset(this.value)">
-            <span id="offset-value">0.0</span>
-            <button onclick="applyOffsetToSubtitles()">Áp dụng lệch vĩnh viễn</button>
-        </div>
-        <div class="volume-container">
-            <div class="volume-control">
-                <label for="video-volume">Âm lượng Video: </label>
-                <input type="range" id="video-volume" min="0" max="100" value="100" onchange="updateVideoVolume(this.value)">
+
+        <!-- CÀI ĐẶT (thu gọn được) -->
+        <button class="settings-toggle" onclick="
+            const p = document.getElementById('settings-panel');
+            const open = p.style.display !== 'none';
+            p.style.display = open ? 'none' : 'block';
+            this.textContent = open ? '⚙️ Cài đặt ▾' : '⚙️ Cài đặt ▴';
+        ">⚙️ Cài đặt ▾</button>
+
+        <div id="settings-panel" class="settings-panel" style="display:none;">
+            <div class="settings-row">
+                <label for="tts-language">🌐 Ngôn ngữ TTS:</label>
+                <select id="tts-language" onchange="updateTTSLanguage(this.value)">
+                    <option value="vi-VN">Tiếng Việt</option>
+                    <option value="ko-KR">Tiếng Hàn</option>
+                </select>
+            </div>
+            <div class="settings-row">
+                <label for="tts-speed">🏃 Tốc độ TTS:</label>
+                <input type="range" id="tts-speed" min="0.5" max="2.5" step="0.1" value="1.5" onchange="updateTTSSpeed(this.value)" style="width:140px;">
+                <span id="speed-value">1.5</span>
+            </div>
+            <div class="settings-row">
+                <label for="video-volume">📺 Âm lượng Video:</label>
+                <input type="range" id="video-volume" min="0" max="100" value="100" onchange="updateVideoVolume(this.value)" style="width:120px;">
                 <span id="video-volume-value">100</span>
             </div>
-            <div class="volume-control">
-                <label for="tts-volume">Âm lượng TTS: </label>
-                <input type="range" id="tts-volume" min="0" max="1" step="0.1" value="1" onchange="updateTTSVolume(this.value)">
+            <div class="settings-row">
+                <label for="tts-volume">🔈 Âm lượng TTS:</label>
+                <input type="range" id="tts-volume" min="0" max="1" step="0.1" value="1" onchange="updateTTSVolume(this.value)" style="width:120px;">
                 <span id="tts-volume-value">1.0</span>
+            </div>
+            <div class="settings-row">
+                <label for="subtitle-offset">⏱ Lệch phụ đề (giây):</label>
+                <button onclick="toggleNegativeOffset()" style="width:auto; padding:4px 10px;">-</button>
+                <input type="number" id="subtitle-offset" min="-5" max="5" step="0.1" value="0" style="width:70px; text-align:center;" onchange="updateSubtitleOffset(this.value)">
+                <span id="offset-value">0.0</span>
+                <button onclick="applyOffsetToSubtitles()" style="width:auto; padding:4px 10px; background:#FF9800; color:white; border:none; border-radius:5px; cursor:pointer;">Áp dụng vĩnh viễn</button>
             </div>
         </div>
         <div style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
@@ -750,9 +871,9 @@ if (urlInput.includes('youtube.com/live/')) {
     }
 }
 
-subtitleLink.href = `https://getsubs.cc/${convertedUrl}`;
-subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${urlInput.includes('youtube.com/live/') ? ' (đã chuyển đổi từ live)' : ''}`;
-            subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này`;
+const encodedUrl = encodeURIComponent(convertedUrl);
+subtitleLink.href = `https://savesubs.com/process?url=${encodedUrl}`;
+subtitleLink.textContent = `Tải phụ đề từ savesubs.com cho video này`;
             subtitleLinkContainer.style.display = "block";
             initializePlayer();
             const historyItem = history.find(item => item.videoUrl === urlInput);
@@ -1466,9 +1587,9 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
             const btn = document.getElementById("vocab-pause-tts-btn");
             if (btn) {
                 btn.textContent = vocabPauseTTSEnabled
-                    ? "Tạm dừng & Đọc Từ vựng (Bật)"
-                    : "Tạm dừng & Đọc Từ vựng (Tắt)";
-                btn.style.backgroundColor = vocabPauseTTSEnabled ? "#7b1fa2" : "";
+                    ? "📖 Đọc từ vựng (Bật)"
+                    : "📖 Đọc từ vựng (Tắt)";
+                btn.style.backgroundColor = vocabPauseTTSEnabled ? "#6a1b9a" : "";
             }
             try { localStorage.setItem("vocabPauseTTSEnabled", vocabPauseTTSEnabled ? "1" : "0"); } catch (e) {}
         }
@@ -1998,9 +2119,9 @@ subtitleLink.textContent = `Tải phụ đề từ getsubs.cc cho video này${ur
                 const vpBtn = document.getElementById("vocab-pause-tts-btn");
                 if (vpBtn) {
                     vpBtn.textContent = vocabPauseTTSEnabled
-                        ? "Tạm dừng & Đọc Từ vựng (Bật)"
-                        : "Tạm dừng & Đọc Từ vựng (Tắt)";
-                    if (vocabPauseTTSEnabled) vpBtn.style.backgroundColor = "#7b1fa2";
+                        ? "📖 Đọc từ vựng (Bật)"
+                        : "📖 Đọc từ vựng (Tắt)";
+                    if (vocabPauseTTSEnabled) vpBtn.style.backgroundColor = "#6a1b9a";
                 }
 
                 document.getElementById("tts-speed").value = ttsSpeed;
